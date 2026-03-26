@@ -9,7 +9,7 @@
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker)](https://docker.com)
 [![Kafka](https://img.shields.io/badge/Apache_Kafka-7.6-231F20?style=flat&logo=apachekafka)](https://kafka.apache.org)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python)](https://python.org)
-[![License](https://img.shields.io/github/license/owner/repo?style=flat)](LICENSE)
+[![License](https://img.shields.io/github/license/kwisdomk/OTDT?style=flat)](LICENSE)
 
 **Demo Context**: Geothermal Development Company (GDC) Kenya — 50+ wellpads (WP-07 etc.). *Synthetic data for workshop demo.*
 
@@ -142,4 +142,4 @@ curl http://localhost:8000/disclaimer
 
 *Synthetic demo data. Production deployment: OpenShift + MAS 9.1 + watsonx.ai*
 
-[![Star History](https://img.shields.io/github/stars/owner/repo?style=social)](https://github.com/owner/repo)
+[![Star History](https://img.shields.io/github/stars/kwisdomk/OTDT?style=social)](https://github.com/kwisdomk/OTDT)
