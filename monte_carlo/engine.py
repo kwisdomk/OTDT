@@ -1,3 +1,18 @@
+"""
+
+Monte Carlo failure probability engine.
+
+Runs n_iterations probabilistic scenarios over current sensor state.
+
+Each scenario samples sensor values from their uncertainty distributions.
+
+Failure = any sensor exceeds its critical threshold in that scenario.
+
+Probability = failed_scenarios / total_scenarios.
+
+"""
+
+
 import numpy as np
 from datetime import datetime, timedelta, date
 
