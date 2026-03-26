@@ -3,24 +3,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import os
 import asyncio
+import sys
 from typing import List
 from dotenv import load_dotenv
 
-# Local imports
-from integrations.kafka_consumer import consume
-from db.timescale import init_schema, store_reading
-from db.redis_client import set_asset_state, get_all_asset_states
-from anomaly.detector import detector
-from routers import whatif
+# Absolute imports from api package
+from api.integrations.kafka_consumer import consume
+from api.db.timescale import init_schema, store_reading
+from api.db.redis_client import set_asset_state, get_all_asset_states
+from api.anomaly.detector import detector
+from api.routers import whatif
+from api.integrations.maximo_client import create_work_order
 
-# Monte Carlo integration
-import sys
-sys.path.append("..")
+# Monte Carlo - add OTDT to path (same as original)
+sys.path.append(".")
 from monte_carlo.engine import run_simulation
-from integrations.maximo_client import create_work_order
 
 load_dotenv()
-
 
 # ── WebSocket Connection Manager ───────────────────────────────────────
 class ConnectionManager:
@@ -45,9 +44,7 @@ class ConnectionManager:
         for connection in dead:
             self.disconnect(connection)
 
-
 manager = ConnectionManager()
-
 
 # ── Kafka message handler ─────────────────────────────────────────────
 async def handle_message(msg: dict):
@@ -115,7 +112,6 @@ async def handle_message(msg: dict):
 
     print(f"[Kafka] Processed {asset_id}: {status} (score={score})")
 
-
 # ── Lifespan (startup / shutdown) ─────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -126,7 +122,6 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown
     print("[API] Shutting down")
-
 
 # ── FastAPI App ───────────────────────────────────────────────────────
 app = FastAPI(
@@ -147,12 +142,10 @@ app.add_middleware(
 # Include routers
 app.include_router(whatif.router, prefix="/whatif")
 
-
 # ── Health & Status Endpoints ──────────────────────────────────────────
 @app.get("/health")
 async def health():
     return {"status": "ok", "service": "ot-digital-twin", "synthetic": True}
-
 
 @app.get("/status")
 async def status():
@@ -163,7 +156,6 @@ async def status():
         "synthetic": True,
     }
 
-
 @app.get("/disclaimer")
 async def disclaimer():
     return {
@@ -171,7 +163,6 @@ async def disclaimer():
         "notice": "SYNTHETIC DATA: All sensor readings and AI predictions are generated from simulation models. Not real plant data.",
         "partner": "i3 Technologies Ltd | IBM Silver Partner | CEID: 7sq30",
     }
-
 
 # ── Anomaly Test Endpoint ──────────────────────────────────────────────
 @app.get("/anomaly/test")
@@ -193,7 +184,6 @@ async def test_anomaly():
         }
     except Exception as e:
         return {"error": str(e), "message": "Anomaly detector not available"}
-
 
 # ── Sensor Endpoint (Mock) ────────────────────────────────────────────
 @app.get("/sensors/latest")
@@ -218,7 +208,6 @@ async def sensors_latest():
         ]
     }
 
-
 # ── WebSocket Endpoint ─────────────────────────────────────────────────
 @app.websocket("/twin/stream")
 async def websocket_stream(websocket: WebSocket):
@@ -230,11 +219,9 @@ async def websocket_stream(websocket: WebSocket):
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
-
 # ── Run with uvicorn ───────────────────────────────────────────────────
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run(
         "main:app",
         host=os.getenv("API_HOST", "0.0.0.0"),

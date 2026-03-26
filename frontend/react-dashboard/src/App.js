@@ -7,7 +7,7 @@ export default function App() {
   const { data, status } = useWebSocket(WS_URL);
 
   const assets = data?.assets || [];
-  const turbine = assets.find(a => a.asset_id === 'WP-07');
+  const turbine = assets.find(a => a.asset_id === 'GDC-WP-007');
 
   const statusColour = { NORMAL: '#1E6B3C', WARNING: '#C55A11', CRITICAL: '#C00000' };
 
@@ -70,7 +70,7 @@ export default function App() {
 
       {!turbine && (
         <div style={{ textAlign: 'center', padding: 50 }}>
-          <p>Waiting for sensor data from WP-07...</p>
+          <p>Waiting for sensor data from GDC-WP-007...</p>
           <p>Make sure the API is running and Kafka is sending data.</p>
         </div>
       )}

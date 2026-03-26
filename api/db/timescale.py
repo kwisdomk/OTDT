@@ -52,9 +52,12 @@ async def init_schema():
 
 async def store_reading(asset_id: str, sensors: dict, ts: str):
     """Persists a batch of sensor readings to the hypertable."""
+    from datetime import datetime
     pool = await get_pool()
     async with pool.acquire() as conn:
-        rows = [(ts, asset_id, k, v) for k, v in sensors.items() if v is not None]
+        # Convert string timestamp to datetime
+        dt = datetime.fromisoformat(ts.replace('Z', '+00:00'))
+        rows = [(dt, asset_id, k, v) for k, v in sensors.items() if v is not None]
         await conn.executemany(
             'INSERT INTO sensor_readings (time, asset_id, sensor_name, value) VALUES ($1, $2, $3, $4)',
             rows,
