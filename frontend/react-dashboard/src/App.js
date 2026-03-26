@@ -1,6 +1,5 @@
 import { useWebSocket } from './hooks/useWebSocket';
 import WhatIfSlider from './components/WhatIfSlider';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function App() {
   const WS_URL = process.env.REACT_APP_WS_URL || 'ws://localhost:8000/twin/stream';
