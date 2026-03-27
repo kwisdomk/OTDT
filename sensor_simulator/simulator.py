@@ -43,3 +43,43 @@ class GeothermalSimulator:
     def inject_anomaly(self):  self.anomaly_active = True
     def clear_anomaly(self):   self.anomaly_active = False; self.bearing_drift = 0.0
 
+# Add this at the end of simulator.py
+
+if __name__ == "__main__":
+    import sys
+    import time
+    import json
+    from kafka import KafkaProducer
+    
+    # Create producer
+    producer = KafkaProducer(
+        bootstrap_servers='localhost:9092',
+        value_serializer=lambda v: json.dumps(v).encode('utf-8')
+    )
+    
+    print("[SIM] Publishing to Kafka topic sensor.telemetry every 1s")
+    
+    sim = GeothermalSimulator()
+    DEMO_MODE = '--demo' in sys.argv
+    demo_timer = 0
+    
+    try:
+        while True:
+            if DEMO_MODE:
+                demo_timer += 1
+                if 60 <= demo_timer < 180 and not sim.anomaly_active:
+                    sim.inject_anomaly()
+                    print('[SIM] ANOMALY INJECTED at t=60s')
+                elif demo_timer >= 180 and sim.anomaly_active:
+                    sim.clear_anomaly()
+                    print('[SIM] Anomaly cleared at t=180s')
+            
+            payload = sim.get_reading()
+            producer.send('sensor.telemetry', payload)
+            vib = payload['sensors']['bearing_vibration_mms']
+            print(f'[SIM] Sent: {vib:.3f}mm vib')
+            time.sleep(1)
+            
+    except KeyboardInterrupt:
+        print('[SIM] Stopped')
+        producer.close()

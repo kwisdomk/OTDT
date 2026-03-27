@@ -1,6 +1,6 @@
 """
 OT Digital Twin API - main.py
-Wires together: Kafka consumer → Anomaly Detector → Monte Carlo → WebSocket broadcast
+Wires together: Kafka consumer → Anomaly Detector → Calibrated Probability → WebSocket broadcast
 """
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -13,15 +13,14 @@ import os
 from typing import List, Optional
 from kafka import KafkaConsumer
 import threading
-from datetime import datetime, timedelta
+from datetime import datetime
 
-# --- Path setup ---
+# --- Path setup and imports (ONCE at startup) ---
 ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(ROOT, 'api'))
 sys.path.insert(0, ROOT)
 
 from api.anomaly.detector import detector
-from monte_carlo.engine import run_simulation
 
 app = FastAPI(title="OT Digital Twin API", version="1.0.0")
 
@@ -32,16 +31,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Sensor key translation ---
-def translate_sensors_for_mc(sensors: dict) -> dict:
-    """Map simulator sensor keys → Monte Carlo engine keys."""
-    return {
-        'bearing_temp_c': sensors.get('temperature_c', 85.0),
-        'bearing_vibration_mms': sensors.get('vibration_mms', 4.2),
-        'steam_inlet_pressure_bar': sensors.get('pressure_bar', 24.0),
-    }
-
-# --- Work order state (in-memory for demo) ---
+# --- Work order state ---
 active_work_orders: dict = {}
 wo_counter = 0
 
@@ -58,6 +48,54 @@ def maybe_create_work_order(asset_id: str, status: str) -> Optional[str]:
         print(f"[Maximo] Work order cleared: {wo_id} for {asset_id}")
         return None
     return active_work_orders.get(asset_id)
+
+
+# --- Calibrated probability curve (matches spec table exactly) ---
+_CAL_POINTS = [
+    (0, 0.08),
+    (7, 0.22),
+    (14, 0.35),
+    (30, 0.55),
+    (45, 0.72),
+    (60, 0.85),
+    (90, 0.92),
+]
+
+def calibrated_probability(days: int) -> float:
+    """Linear interpolation between anchor points. Returns probability 0.0-1.0."""
+    d = max(0, int(days))
+    
+    # Clamp at edges
+    if d <= _CAL_POINTS[0][0]:
+        return _CAL_POINTS[0][1]
+    if d >= _CAL_POINTS[-1][0]:
+        return _CAL_POINTS[-1][1]
+    
+    # Linear interpolation between nearest anchors
+    for (d0, p0), (d1, p1) in zip(_CAL_POINTS, _CAL_POINTS[1:]):
+        if d0 <= d <= d1:
+            t = (d - d0) / float(d1 - d0)
+            return round(p0 + t * (p1 - p0), 4)
+    
+    # Safety fallback
+    return _CAL_POINTS[-1][1]
+
+
+# --- Live pipeline probability (maps anomaly score to equivalent days) ---
+def live_probability(anomaly_score: float) -> tuple:
+    """Returns (probability, days_to_failure, action) for live pipeline."""
+    if anomaly_score > 0.5:
+        # Map anomaly score 0.5-1.0 to days 0-90
+        # anomaly 0.5 → 0 days → 8% probability
+        # anomaly 1.0 → 90 days → 92% probability
+        norm_score = min(1.0, max(0.5, anomaly_score))
+        days_equivalent = int(((norm_score - 0.5) / 0.5) * 90)
+        prob = calibrated_probability(days_equivalent)
+        days_p50 = max(1, int(45 * (1 - norm_score)))
+        action = 'URGENT' if prob > 0.25 else 'SCHEDULE_MAINTENANCE' if prob > 0.10 else 'MONITOR'
+        return prob, days_p50, action
+    return 0.08, 45, 'MONITOR'
+
 
 # --- WebSocket connection manager ---
 class ConnectionManager:
@@ -87,6 +125,7 @@ class ConnectionManager:
 manager = ConnectionManager()
 loop = None
 
+
 # --- Kafka consumer thread ---
 def run_kafka_consumer():
     global loop
@@ -113,23 +152,13 @@ def run_kafka_consumer():
         # Anomaly detection
         status, anomaly_score = detector.predict(sensors)
 
-        # Monte Carlo — only run full simulation when anomaly detected
-        if anomaly_score > 0.5:
-            try:
-                mc_result = run_simulation(translate_sensors_for_mc(sensors))
-                failure_prob = mc_result.get('failure_probability', 0.34)
-                days_p50 = mc_result.get('days_to_failure_p50', 14)
-                action = mc_result.get('recommended_action', 'URGENT')
-            except Exception as e:
-                print(f"[MC] Error: {e}")
-                failure_prob, days_p50, action = 0.34, 14, 'URGENT'
-        else:
-            failure_prob, days_p50, action = 0.08, 45, 'MONITOR'
+        # Calibrated probability (bypasses broken MC)
+        prob, days_p50, action = live_probability(anomaly_score)
 
         # Work order
         wo_id = maybe_create_work_order(asset_id, status)
 
-        print(f"[Pipeline] {asset_id} | {status} | score={anomaly_score:.3f} | prob={failure_prob:.2f} | WO={wo_id}")
+        print(f"[Pipeline] {asset_id} | {status} | score={anomaly_score:.3f} | prob={prob:.2f} | WO={wo_id}")
 
         if loop:
             asyncio.run_coroutine_threadsafe(
@@ -139,14 +168,10 @@ def run_kafka_consumer():
                         "asset_id": asset_id,
                         "asset_label": data.get("asset_label", asset_id),
                         "status": status,
-                        "colour_hex": {
-                            "NORMAL": "#1E6B3C",
-                            "WARNING": "#C55A11",
-                            "CRITICAL": "#C00000"
-                        }.get(status, "#888888"),
+                        "colour_hex": {"NORMAL": "#1E6B3C", "WARNING": "#C55A11", "CRITICAL": "#C00000"}.get(status, "#888"),
                         "sensors": sensors,
                         "anomaly_score": anomaly_score,
-                        "failure_probability": failure_prob,
+                        "failure_probability": prob,
                         "days_to_failure_p50": days_p50,
                         "recommended_action": action,
                         "active_work_order_id": wo_id,
@@ -155,6 +180,7 @@ def run_kafka_consumer():
                 }),
                 loop
             )
+
 
 # --- App lifecycle ---
 @app.on_event("startup")
@@ -166,10 +192,12 @@ async def startup():
     thread.start()
     print("[API] Startup complete")
 
+
 # --- HTTP endpoints ---
 @app.get("/health")
 async def health():
     return {"status": "ok", "service": "ot-digital-twin"}
+
 
 @app.get("/status")
 async def api_status():
@@ -179,9 +207,11 @@ async def api_status():
         "active_work_orders": len(active_work_orders),
     }
 
+
 @app.get("/disclaimer")
 async def disclaimer():
     return {"message": "All sensor data is synthetic. Not real plant data."}
+
 
 # --- What-If endpoint ---
 class WhatIfRequest(BaseModel):
@@ -189,12 +219,10 @@ class WhatIfRequest(BaseModel):
     days_deferred: int = 30
     maintenance_date: Optional[str] = None
 
+
 @app.post("/whatif/simulate")
 async def whatif_simulate(req: WhatIfRequest):
-    """
-    Simulate failure probability if maintenance is deferred by N days.
-    Accepts either days_deferred (int) or maintenance_date (YYYY-MM-DD string).
-    """
+    """Simulate failure probability if maintenance is deferred by N days."""
     days = req.days_deferred
 
     if req.maintenance_date:
@@ -204,21 +232,29 @@ async def whatif_simulate(req: WhatIfRequest):
         except ValueError:
             pass
 
-    # Calibrated probability curve — bypasses MC engine for predictable demo values
-    # 0 days = 8%, 30 days = ~45%, 60 days = ~85%, 90 days = ~92%
-    degradation = min(1.0, days / 60.0)
-    projected_prob = round(min(0.92, 0.08 + (degradation * 0.84)), 4)
-    days_p50 = max(1, int(45 * (1 - degradation * 0.9)))
-    action = 'MONITOR' if projected_prob < 0.10 else ('SCHEDULE_MAINTENANCE' if projected_prob < 0.25 else 'URGENT')
+    # Use calibrated curve
+    projected_prob = calibrated_probability(days)
+    
+    # Action based on probability
+    if projected_prob < 0.10:
+        action = 'MONITOR'
+    elif projected_prob < 0.25:
+        action = 'SCHEDULE_MAINTENANCE'
+    else:
+        action = 'URGENT'
+    
+    days_p50 = max(1, int(45 * (1 - min(1.0, days / 90.0))))
 
     return {
         "asset_id": req.asset_id,
         "days_deferred": days,
         "projected_failure_probability": projected_prob,
+        "failure_probability": projected_prob,  # Backward compatibility
         "days_to_failure_p50": days_p50,
         "recommended_action": action,
         "synthetic": True
     }
+
 
 # --- WebSocket ---
 @app.websocket("/twin/stream")
@@ -229,6 +265,7 @@ async def websocket_stream(websocket: WebSocket):
             await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+
 
 if __name__ == "__main__":
     import uvicorn

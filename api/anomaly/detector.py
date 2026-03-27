@@ -1,60 +1,91 @@
 """
 Anomaly AI: Threshold-based detector for geothermal sensors.
 Returns (status, anomaly_score) for each reading.
+
+Supports both legacy keys and current simulator keys.
 """
 
-# Features must match sensor_simulator output
-FEATURES = ['temperature_c', 'pressure_bar', 'vibration_mms', 'flow_rate_ls']
+# Canonical feature names for internal scoring
+FEATURES = ["temperature", "pressure", "vibration", "flow"]
 
-# Normal operating ranges
+# Mapping: canonical feature -> accepted sensor keys (priority order)
+KEY_MAP = {
+    "temperature": ["bearing_temp_c", "temperature_c"],
+    "pressure": ["steam_inlet_pressure_bar", "pressure_bar"],
+    "vibration": ["bearing_vibration_mms", "vibration_mms"],
+    "flow": ["steam_flow_kgs", "flow_rate_ls"],
+}
+
+# Thresholds tuned to simulator behavior
+# Normal region is below NORMAL_MAX.
+# Critical region is >= CRITICAL_MIN.
 NORMAL_MAX = {
-    'temperature_c': 195.0,
-    'pressure_bar': 28.0,
-    'vibration_mms': 5.0,
-    'flow_rate_ls': 90.0,
+    "temperature": 90.0,
+    "pressure": 75.0,
+    "vibration": 5.0,
+    "flow": 48.0,
 }
 
-# Critical thresholds
 CRITICAL_MIN = {
-    'temperature_c': 210.0,
-    'pressure_bar': 32.0,
-    'vibration_mms': 7.5,
-    'flow_rate_ls': 100.0,
+    "temperature": 105.0,
+    "pressure": 85.0,
+    "vibration": 7.1,
+    "flow": 55.0,
 }
+
+
+def _first_float(sensors: dict, keys: list[str]):
+    """Return first available numeric value for provided keys."""
+    for key in keys:
+        val = sensors.get(key)
+        if val is None:
+            continue
+        try:
+            return float(val)
+        except (TypeError, ValueError):
+            continue
+    return None
 
 
 class AnomalyDetector:
-    def predict(self, sensors: dict) -> tuple:
+    def predict(self, sensors: dict) -> tuple[str, float]:
         """
         Returns (status, anomaly_score) where:
-        - status: 'NORMAL' | 'WARNING' | 'CRITICAL'
+        - status: 'NORMAL' | 'WARNING' | 'CRITICAL' | 'UNKNOWN'
         - anomaly_score: 0.0 to 1.0
         """
+        if not isinstance(sensors, dict):
+            return "UNKNOWN", 0.0
+
         scores = []
 
-        for name in FEATURES:
-            val = sensors.get(name)
+        for feature in FEATURES:
+            val = _first_float(sensors, KEY_MAP[feature])
             if val is None:
                 continue
 
-            if val >= CRITICAL_MIN.get(name, float('inf')):
+            nmax = NORMAL_MAX[feature]
+            cmin = CRITICAL_MIN[feature]
+
+            if val >= cmin:
                 scores.append(1.0)
-            elif val > NORMAL_MAX.get(name, 0):
-                ratio = (val - NORMAL_MAX[name]) / (CRITICAL_MIN[name] - NORMAL_MAX[name])
+            elif val > nmax:
+                # Warning band scaled to [0.6, 0.9)
+                ratio = (val - nmax) / (cmin - nmax)
                 scores.append(0.6 + (ratio * 0.3))
             else:
-                # Normal zone: scale 0 to 0.5
-                scores.append((val / NORMAL_MAX[name]) * 0.5)
+                # Normal band scaled to [0.0, 0.5]
+                scores.append(max(0.0, (val / nmax) * 0.5))
 
         if not scores:
-            return 'UNKNOWN', 0.0
+            return "UNKNOWN", 0.0
 
         score = max(scores)
         if score >= 0.9:
-            return 'CRITICAL', round(score, 4)
+            return "CRITICAL", round(score, 4)
         if score >= 0.6:
-            return 'WARNING', round(score, 4)
-        return 'NORMAL', round(score, 4)
+            return "WARNING", round(score, 4)
+        return "NORMAL", round(score, 4)
 
 
 # Singleton instance
