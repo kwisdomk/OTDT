@@ -7,17 +7,28 @@ from typing import List
 from dotenv import load_dotenv
 
 # Local imports
-from integrations.kafka_consumer import consume
-from db.timescale import init_schema, store_reading
-from db.redis_client import set_asset_state, get_all_asset_states
-from anomaly.detector import detector
-from routers import whatif
+from api.db.timescale import init_schema, store_reading
+from api.db.redis_client import set_asset_state, get_all_asset_states
+from api.anomaly.detector import detector
+from api.routers import whatif, maximo, twin, assets, monte_carlo, sensors, agent
 
 # Monte Carlo integration
-import sys
-sys.path.append("..")
 from monte_carlo.engine import run_simulation
-from integrations.maximo_client import create_work_order
+
+# Optional integrations (may not exist yet)
+try:
+    from api.integrations.kafka_consumer import consume
+except ImportError:
+    async def consume(handler):
+        """Mock Kafka consumer for development."""
+        pass
+
+try:
+    from api.integrations.maximo_client import create_work_order
+except ImportError:
+    def create_work_order(asset_id, prob, scheduled_date):
+        """Mock work order creation."""
+        return {"work_order_id": f"WO-{asset_id}-MOCK"}
 
 load_dotenv()
 
@@ -145,7 +156,13 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(whatif.router, prefix="/whatif")
+app.include_router(assets.router, prefix="/api", tags=["Assets"])
+app.include_router(monte_carlo.router, prefix="/api/monte-carlo", tags=["Monte Carlo"])
+app.include_router(twin.router, prefix="/api", tags=["Digital Twin"])
+app.include_router(sensors.router, prefix="/api", tags=["Sensors"])
+app.include_router(whatif.router, prefix="/whatif", tags=["What-If Analysis"])
+app.include_router(maximo.router, prefix="/maximo", tags=["Maximo"])
+app.include_router(agent.router, prefix="/api", tags=["Agent Integration"])
 
 
 # ── Health & Status Endpoints ──────────────────────────────────────────

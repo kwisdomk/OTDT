@@ -28,7 +28,7 @@ class WhatIfRequest(BaseModel):
 
 async def whatif_simulate(req: WhatIfRequest):
 
-    from db.redis_client import get_asset_state
+    from api.db.redis_client import get_asset_state
 
     state = await get_asset_state(req.asset_id)
 
@@ -37,16 +37,7 @@ async def whatif_simulate(req: WhatIfRequest):
     return mc_mod.whatif_simulation(state['sensors'], req.maintenance_date)
 
 
-# ─────────────────────────────────────────────────────────────────────
-
-# api/routers/maximo.py
-
-from fastapi import APIRouter
-
-from integrations.maximo_client import get_active_alerts
-
-
-router = APIRouter()
+# Made with Bob
 
 
 @router.get('/alerts')
