@@ -1,21 +1,39 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+import os
 import asyncio
-import json
 from typing import List
-from kafka import KafkaConsumer
-import threading
-import time
+from dotenv import load_dotenv
 
-app = FastAPI(title="OT Digital Twin API", version="1.0.0")
+# Local imports
+from api.db.timescale import init_schema, store_reading
+from api.db.redis_client import set_asset_state, get_all_asset_states
+from api.anomaly.detector import detector
+from api.routers import whatif, maximo, twin, assets, monte_carlo, sensors, agent
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Monte Carlo integration
+from monte_carlo.engine import run_simulation
 
+# Optional integrations (may not exist yet)
+try:
+    from api.integrations.kafka_consumer import consume
+except ImportError:
+    async def consume(handler):
+        """Mock Kafka consumer for development."""
+        pass
+
+try:
+    from api.integrations.maximo_client import create_work_order
+except ImportError:
+    def create_work_order(asset_id, prob, scheduled_date):
+        """Mock work order creation."""
+        return {"work_order_id": f"WO-{asset_id}-MOCK"}
+
+load_dotenv()
+
+
+# ── WebSocket Connection Manager ───────────────────────────────────────
 class ConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
@@ -23,85 +41,220 @@ class ConnectionManager:
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
         self.active_connections.append(websocket)
-        print(f"[WS] Client connected. Total: {len(self.active_connections)}")
 
     def disconnect(self, websocket: WebSocket):
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
-        print(f"[WS] Client disconnected. Total: {len(self.active_connections)}")
 
     async def broadcast(self, message: dict):
+        dead = []
         for connection in self.active_connections:
             try:
                 await connection.send_json(message)
-            except:
-                pass
+            except Exception:
+                dead.append(connection)
+        for connection in dead:
+            self.disconnect(connection)
+
 
 manager = ConnectionManager()
-loop = None
 
-def run_kafka_consumer():
-    global loop
-    print("[Kafka] Starting consumer...")
-    consumer = KafkaConsumer(
-        'sensor.telemetry',
-        bootstrap_servers='localhost:9092',
-        value_deserializer=lambda m: json.loads(m.decode('utf-8')),
-        auto_offset_reset='latest',
-        group_id='otdt-api'
+
+# ── Kafka message handler ─────────────────────────────────────────────
+async def handle_message(msg: dict):
+    """Process each incoming sensor reading from Kafka."""
+    asset_id = msg.get("asset_id", "WP-07")
+    sensors = msg.get("sensors", {}) or {}
+    timestamp = msg.get("timestamp", "")
+
+    # 1. Store in TimescaleDB
+    await store_reading(asset_id, sensors, timestamp)
+
+    # 2. Run anomaly detection
+    status, score = detector.predict(sensors)
+
+    # 3. Monte Carlo when anomaly detected
+    mc_result = None
+    work_order_id = None
+
+    if score > 0.5:
+        mc_result = run_simulation(sensors) or {}
+        prob = float(mc_result.get("failure_probability", 0.0))
+        if prob > 0.25:
+            wo = create_work_order(asset_id, prob, mc_result.get("optimal_maintenance_day"))
+            if isinstance(wo, dict):
+                work_order_id = wo.get("work_order_id")
+    else:
+        # Provide a consistent payload even when MC isn't run
+        mc_result = {
+            "failure_probability": 0.0,
+            "days_to_failure_p50": None,
+            "recommended_action": "MONITOR",
+            "optimal_maintenance_day": None,
+        }
+
+    colour = "#C00000" if status == "CRITICAL" else ("#FF9900" if status == "WARNING" else "#1E6B3C")
+
+    state = {
+        "asset_id": asset_id,
+        "asset_label": f"GDC-{asset_id}",
+        "status": status,
+        "colour_hex": colour,
+        "sensors": sensors,
+        "anomaly_score": round(float(score), 4),
+        "failure_probability": mc_result.get("failure_probability"),
+        "days_to_failure_p50": mc_result.get("days_to_failure_p50"),
+        "recommended_action": mc_result.get("recommended_action", "MONITOR"),
+        "optimal_maintenance_day": mc_result.get("optimal_maintenance_day"),
+        "active_work_order_id": work_order_id,
+        "mc_result": mc_result,
+        "timestamp": timestamp,
+    }
+
+    # 4. Cache in Redis
+    await set_asset_state(asset_id, state)
+
+    # 5. Broadcast to WebSocket clients
+    all_assets = await get_all_asset_states()
+    await manager.broadcast(
+        {
+            "timestamp": timestamp,
+            "assets": all_assets,
+            "synthetic": True,
+        }
     )
-    print("[Kafka] Connected. Waiting for messages...")
-    
-    for msg in consumer:
-        data = msg.value
-        asset_id = data.get('asset_id', 'unknown')
-        sensors = data.get('sensors', {})
-        vib = sensors.get('vibration_mms', 'N/A')
-        print(f"[Kafka] Received: {asset_id} - vib={vib}")
-        
-        # Broadcast to WebSocket clients
-        if loop:
-            asyncio.run_coroutine_threadsafe(
-                manager.broadcast({
-                    "timestamp": data.get("timestamp"),
-                    "assets": [{
-                        "asset_id": asset_id,
-                        "asset_label": asset_id,
-                        "status": "NORMAL",
-                        "sensors": sensors,
-                        "anomaly_score": 0.12,
-                        "failure_probability": 0.08,
-                        "days_to_failure_p50": 45,
-                        "recommended_action": "MONITOR",
-                        "active_work_order_id": None
-                    }],
-                    "synthetic": True
-                }),
-                loop
-            )
 
-@app.on_event("startup")
-async def startup():
-    global loop
-    loop = asyncio.get_event_loop()
-    print("[API] Starting Kafka consumer thread")
-    thread = threading.Thread(target=run_kafka_consumer, daemon=True)
-    thread.start()
-    print("[API] Startup complete")
+    print(f"[Kafka] Processed {asset_id}: {status} (score={score})")
 
+
+# ── Lifespan (startup / shutdown) ─────────────────────────────────────
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    await init_schema()
+    asyncio.create_task(consume(handle_message))
+    print("[API] OT Digital Twin API started")
+    yield
+    # Shutdown
+    print("[API] Shutting down")
+
+
+# ── FastAPI App ───────────────────────────────────────────────────────
+app = FastAPI(
+    title="OT Digital Twin API",
+    version="1.0.0",
+    description="GDC Kenya — 50-asset geothermal digital twin",
+    lifespan=lifespan,
+)
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include routers
+app.include_router(assets.router, prefix="/api", tags=["Assets"])
+app.include_router(monte_carlo.router, prefix="/api/monte-carlo", tags=["Monte Carlo"])
+app.include_router(twin.router, prefix="/api", tags=["Digital Twin"])
+app.include_router(sensors.router, prefix="/api", tags=["Sensors"])
+app.include_router(whatif.router, prefix="/whatif", tags=["What-If Analysis"])
+app.include_router(maximo.router, prefix="/maximo", tags=["Maximo"])
+app.include_router(agent.router, prefix="/api", tags=["Agent Integration"])
+
+
+# ── Health & Status Endpoints ──────────────────────────────────────────
 @app.get("/health")
 async def health():
-    return {"status": "ok", "service": "ot-digital-twin"}
+    return {"status": "ok", "service": "ot-digital-twin", "synthetic": True}
 
+
+@app.get("/status")
+async def status():
+    return {
+        "active": os.getenv("SYSTEM_ACTIVE", "true") == "true",
+        "demo_mode": os.getenv("DEMO_MODE", "false") == "true",
+        "version": "1.0.0",
+        "synthetic": True,
+    }
+
+
+@app.get("/disclaimer")
+async def disclaimer():
+    return {
+        "synthetic": True,
+        "notice": "SYNTHETIC DATA: All sensor readings and AI predictions are generated from simulation models. Not real plant data.",
+        "partner": "i3 Technologies Ltd | IBM Silver Partner | CEID: 7sq30",
+    }
+
+
+# ── Anomaly Test Endpoint ──────────────────────────────────────────────
+@app.get("/anomaly/test")
+async def test_anomaly():
+    """Test anomaly detection with sample data."""
+    try:
+        sample_sensors = {
+            "temperature_c": 185.0,
+            "pressure_bar": 25.0,
+            "vibration_mms": 4.2,
+            "flow_rate_ls": 85.0,
+        }
+        status, score = detector.predict(sample_sensors)
+        return {
+            "status": status,
+            "anomaly_score": score,
+            "sensors": sample_sensors,
+            "synthetic": True,
+        }
+    except Exception as e:
+        return {"error": str(e), "message": "Anomaly detector not available"}
+
+
+# ── Sensor Endpoint (Mock) ────────────────────────────────────────────
+@app.get("/sensors/latest")
+async def sensors_latest():
+    """Get latest readings (mock data for now)."""
+    return {
+        "assets": [
+            {
+                "asset_id": "WP-07",
+                "asset_label": "GDC-WP-007",
+                "status": "NORMAL",
+                "sensors": {
+                    "temperature_c": 185.0,
+                    "pressure_bar": 25.0,
+                    "vibration_mms": 4.2,
+                    "flow_rate_ls": 85.0,
+                },
+                "anomaly_score": 0.12,
+                "failure_probability": 0.08,
+                "synthetic": True,
+            }
+        ]
+    }
+
+
+# ── WebSocket Endpoint ─────────────────────────────────────────────────
 @app.websocket("/twin/stream")
 async def websocket_stream(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
+            # Keep connection alive – data is pushed via broadcasts from handle_message
             await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
+
+# ── Run with uvicorn ───────────────────────────────────────────────────
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
+    uvicorn.run(
+        "main:app",
+        host=os.getenv("API_HOST", "0.0.0.0"),
+        port=int(os.getenv("API_PORT", 8000)),
+        reload=True,
+    )

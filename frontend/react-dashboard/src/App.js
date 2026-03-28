@@ -1,279 +1,194 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useWebSocket } from './hooks/useWebSocket';
 import WhatIfSlider from './components/WhatIfSlider';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import './App.css';
 
-const fmt = (val, decimals = 1) =>
-  val == null || isNaN(val) ? '—' : val.toFixed(decimals);
+// Human-readable sensor config — maps simulator keys → label + unit
+const SENSOR_META = {
+  bearing_temp_c:          { label: 'Bearing Temp',    unit: '°C'   },
+  bearing_vibration_mms:   { label: 'Vibration',       unit: 'mm/s' },
+  steam_inlet_temp_c:      { label: 'Steam Inlet Temp',unit: '°C'   },
+  steam_inlet_pressure_bar:{ label: 'Steam Pressure',  unit: 'bar'  },
+  turbine_rpm:             { label: 'Turbine RPM',     unit: 'rpm'  },
+  steam_flow_kgs:          { label: 'Steam Flow',      unit: 'kg/s' },
+  // fallbacks for short-key simulators
+  temperature_c:           { label: 'Temperature',     unit: '°C'   },
+  pressure_bar:            { label: 'Pressure',        unit: 'bar'  },
+  vibration_mms:           { label: 'Vibration',       unit: 'mm/s' },
+  flow_rate_ls:            { label: 'Flow Rate',       unit: 'L/s'  },
+};
+
+const fmt = (val, dp = 2) =>
+  val == null || isNaN(val) ? '—' : Number(val).toFixed(dp);
+
+const probClass = (p) => {
+  if (p == null) return 'standby';
+  if (p >= 0.25) return 'high';
+  if (p >= 0.10) return 'medium';
+  return 'low';
+};
 
 export default function App() {
   const WS_URL = process.env.REACT_APP_WS_URL || 'ws://localhost:8000/twin/stream';
   const { data, status } = useWebSocket(WS_URL);
 
-  const [assetState, setAssetState] = useState(null);
+  const [asset, setAsset]     = useState(null);
   const [history, setHistory] = useState([]);
 
   useEffect(() => {
-    if (data?.assets?.length > 0) {
-      const turbine = data.assets[0];
-      setAssetState(turbine);
-
-      if (turbine?.sensors?.vibration_mms) {
-        setHistory(prev => {
-          const updated = [...prev, {
-            time: new Date().toLocaleTimeString().slice(-8),
-            vibration: turbine.sensors.vibration_mms
-          }];
-          return updated.slice(-20);
-        });
-      }
+    if (!data?.assets?.length) return;
+    const a = data.assets[0];
+    setAsset(a);
+    const vib = a?.sensors?.bearing_vibration_mms ?? a?.sensors?.vibration_mms;
+    if (vib != null) {
+      setHistory(prev => [
+        ...prev.slice(-19),
+        { t: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }), v: +vib.toFixed(3) }
+      ]);
     }
   }, [data]);
 
-  const statusColour = {
-    NORMAL: '#1E6B3C',
-    WARNING: '#C55A11',
-    CRITICAL: '#C00000'
-  };
-
-  const currentStatus = assetState?.status || 'NORMAL';
-  const themeColor = statusColour[currentStatus] || '#1E6B3C';
-
-  const sensorLabels = {
-    temperature_c: 'Temperature',
-    pressure_bar: 'Pressure',
-    vibration_mms: 'Vibration',
-    flow_rate_ls: 'Flow Rate'
-  };
-
-  const sensorUnits = {
-    temperature_c: '°C',
-    pressure_bar: 'bar',
-    vibration_mms: 'mm/s',
-    flow_rate_ls: 'L/s'
-  };
-
-  const failureProb = assetState?.failure_probability ?? null;
-  const anomalyScore = assetState?.anomaly_score ?? null;
-  const sensors = assetState?.sensors || {};
+  const currentStatus = asset?.status || 'NORMAL';
+  const failureProb   = asset?.failure_probability ?? asset?.projected_failure_probability ?? null;
+  const sensors       = asset?.sensors || {};
 
   return (
-    <div style={{ fontFamily: 'system-ui, sans-serif', background: '#F3F4F6', minHeight: '100vh' }}>
-
+    <div>
       {/* Header */}
-      <div style={{ background: '#1F4E79', color: 'white', padding: '20px 32px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h1 style={{ margin: 0 }}>OT Digital Twin</h1>
-            <p style={{ margin: '4px 0 0', opacity: 0.8 }}>Agentic AI Platform · East Africa</p>
-          </div>
-          <div style={{
-            color: status === 'connected' ? '#A5D6A5' : '#FFB74D',
-            fontWeight: 'bold',
-            fontSize: 14
-          }}>
-            ● {status.toUpperCase()}
+      <header className="header">
+        <div className="header-left">
+          <h1>OT Digital Twin — GDC Kenya</h1>
+          <p>Agentic AI Platform · i3 Technologies · IBM Research Lab Africa</p>
+        </div>
+        <div className="header-right">
+          <div className="ws-indicator">
+            <span className={`ws-dot ${status !== 'connected' ? 'disconnected' : ''}`} />
+            {status.toUpperCase()}
           </div>
         </div>
+      </header>
+
+      {/* Disclaimer */}
+      <div className="disclaimer">
+        ⚠ SYNTHETIC DATA — All sensor readings and AI predictions are computer-generated simulation outputs. Not real plant data.
       </div>
 
-      <div style={{ padding: '24px 32px' }}>
-        {assetState ? (
+      <div className="main">
+        {asset ? (
           <>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))',
-              gap: 24,
-              marginBottom: 24
-            }}>
+            {/* Status Banner */}
+            <div className={`status-banner ${currentStatus}`}>
+              <div>
+                <div className="status-asset">{asset.asset_label || asset.asset_id}</div>
+                <div className="status-sub">Well Pump · Geothermal Pad 1 · GDC Kenya</div>
+              </div>
+              <div className="status-badge">{currentStatus}</div>
+            </div>
 
-              {/* LEFT: Physical Telemetry */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-                {/* Status Banner */}
-                <div style={{
-                  background: themeColor,
-                  color: 'white',
-                  padding: '16px 24px',
-                  borderRadius: 12,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <div>
-                    <div style={{ fontSize: 20, fontWeight: 'bold' }}>
-                      {assetState.asset_label || assetState.asset_id}
-                    </div>
-                    <div style={{ fontSize: 14, opacity: 0.9 }}>Well Pump · Pad 1</div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 28, fontWeight: 'bold' }}>{assetState.status}</div>
-                    <div style={{ fontSize: 12, opacity: 0.9 }}>
-                      Anomaly: {anomalyScore !== null ? `${(anomalyScore * 100).toFixed(1)}%` : '—'}
-                    </div>
-                  </div>
-                </div>
-
+            <div className="grid-two">
+              {/* LEFT column */}
+              <div>
                 {/* Sensor Cards */}
                 <div className="sensor-grid">
-                  {Object.entries(sensors).map(([key, value]) => (
-                    <div key={key} className="sensor-card" style={{
-                      background: 'white',
-                      borderRadius: 12,
-                      padding: '16px 20px',
-                      borderLeft: `4px solid ${themeColor}`,
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                    }}>
-                      <div style={{ fontSize: 13, color: '#666', textTransform: 'uppercase' }}>
-                        {sensorLabels[key] || key}
+                  {Object.entries(sensors).map(([key, val]) => {
+                    const meta = SENSOR_META[key] || { label: key, unit: '' };
+                    return (
+                      <div key={key} className={`sensor-card status-${currentStatus}`}>
+                        <div className="sensor-label">{meta.label}</div>
+                        <div className="sensor-value">
+                          {fmt(val, key.includes('rpm') ? 0 : 2)}
+                          <span className="sensor-unit">{meta.unit}</span>
+                        </div>
                       </div>
-                      <div style={{ fontSize: 28, fontWeight: 'bold', color: '#333' }}>
-                        {fmt(value, key === 'vibration_mms' ? 3 : 1)}
-                        <span style={{ fontSize: 14, fontWeight: 'normal', color: '#888', marginLeft: 4 }}>
-                          {sensorUnits[key] || ''}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Vibration Trend */}
-                <div style={{
-                  background: 'white',
-                  borderRadius: 12,
-                  padding: '20px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                }}>
-                  <h4 style={{ margin: '0 0 12px 0', fontSize: 14, color: '#666' }}>
-                    📈 VIBRATION TREND (Last 20 readings)
-                  </h4>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <LineChart data={history}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey="time" hide />
-                      <YAxis domain={[0, 12]} />
-                      <Tooltip />
-                      <Line
-                        type="monotone"
-                        dataKey="vibration"
-                        stroke={themeColor}
-                        strokeWidth={3}
-                        dot={false}
-                        isAnimationActive={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                  {history.length === 0 && (
-                    <p style={{ textAlign: 'center', color: '#888', fontSize: 12, marginTop: 8 }}>
-                      Waiting for vibration data...
-                    </p>
-                  )}
+                <div className="card">
+                  <div className="card-title">Vibration Trend — Last 20 readings (mm/s)</div>
+                  <div className="trend-container">
+                    {history.length > 1 ? (
+                      <ResponsiveContainer width="100%" height={180}>
+                        <LineChart data={history} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                          <XAxis dataKey="t" hide />
+                          <YAxis domain={[0, 12]} tick={{ fontSize: 10, fontFamily: 'IBM Plex Mono' }} />
+                          <Tooltip
+                            contentStyle={{ fontSize: 12, fontFamily: 'IBM Plex Mono', border: '1px solid #d1d9e6' }}
+                            formatter={(v) => [`${v} mm/s`, 'Vibration']}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="v"
+                            stroke={currentStatus === 'CRITICAL' ? '#b91c1c' : currentStatus === 'WARNING' ? '#b45309' : '#2E6FA3'}
+                            strokeWidth={2}
+                            dot={false}
+                            isAnimationActive={false}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span className="loading-text">Collecting data...</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* RIGHT: AI Forensics */}
+              {/* RIGHT column */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-
                 {/* Failure Probability */}
-                <div style={{
-                  background: 'white',
-                  borderRadius: 12,
-                  padding: '24px',
-                  textAlign: 'center',
-                  borderLeft: `8px solid ${themeColor}`,
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                }}>
-                  <div style={{ fontSize: 14, color: '#666', marginBottom: 8 }}>
-                    MONTE CARLO PREDICTION
+                <div className="card prob-card">
+                  <div className="prob-label">Monte Carlo Failure Probability</div>
+                  <div className={`prob-value ${probClass(failureProb)}`}>
+                    {failureProb != null ? `${(failureProb * 100).toFixed(1)}%` : 'Standby'}
                   </div>
-                  <div style={{
-                    fontSize: 56,
-                    fontWeight: 'bold',
-                    color: failureProb !== null && failureProb > 0.25 ? '#C00000' : '#1E6B3C'
-                  }}>
-                    {failureProb !== null
-                      ? `${(failureProb * 100).toFixed(1)}%`
-                      : <span style={{ color: '#888', fontSize: 32 }}>Standby</span>}
-                  </div>
-                  {assetState.days_to_failure_p50 > 0 && (
-                    <div style={{ fontSize: 14, color: '#888', marginTop: 8 }}>
-                      ~{assetState.days_to_failure_p50} days to failure (P50)
-                    </div>
+                  {typeof asset.days_to_failure_p50 === 'number' && asset.days_to_failure_p50 > 0 && (
+                    <div className="prob-days">~{asset.days_to_failure_p50} days to failure (P50)</div>
                   )}
-                  {assetState.recommended_action && (
-                    <div style={{
-                      marginTop: 12,
-                      padding: '8px 12px',
-                      background: '#f0f0f0',
-                      borderRadius: 8,
-                      fontSize: 13
-                    }}>
-                      Recommended: <strong>{assetState.recommended_action}</strong>
-                    </div>
+                  {asset.recommended_action && (
+                    <span className={`prob-action action-${asset.recommended_action}`}>
+                      {asset.recommended_action.replace('_', ' ')}
+                    </span>
                   )}
                 </div>
 
-                {/* What-If Analyst */}
-                <div style={{
-                  background: 'white',
-                  borderRadius: 12,
-                  padding: '20px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                }}>
-                  <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#333' }}>📊 What-If Analyst</h3>
-                  <WhatIfSlider
-                    assetId={assetState.asset_id}
-                    currentProb={failureProb !== null ? failureProb : 0.08}
-                  />
-                </div>
-
-                {/* Work Order — conditional */}
-                {assetState.active_work_order_id && (
-                  <div style={{
-                    background: '#E8F0E8',
-                    borderRadius: 12,
-                    padding: '20px',
-                    textAlign: 'center',
-                    border: '1px solid #C0D4C0',
-                    animation: 'slideIn 0.5s ease'
-                  }}>
-                    <div style={{ fontSize: 14, color: '#2E6B2E', marginBottom: 8 }}>✓ MAXIMO WORK ORDER</div>
-                    <div style={{ fontSize: 24, fontWeight: 'bold', color: '#1E6B3C' }}>
-                      {assetState.active_work_order_id}
+                {/* Work Order */}
+                {asset.active_work_order_id && (
+                  <div className="wo-card">
+                    <div>
+                      <div className="wo-label">Maximo Work Order Created</div>
+                      <div className="wo-id">{asset.active_work_order_id}</div>
                     </div>
+                    <span style={{ fontSize: 28 }}>✓</span>
                   </div>
                 )}
-              </div>
-            </div>
 
-            {/* Footer */}
-            <div style={{
-              marginTop: 32,
-              paddingTop: 16,
-              borderTop: '1px solid #ddd',
-              textAlign: 'center',
-              fontSize: 12,
-              color: '#888'
-            }}>
-              <p>SYNTHETIC DATA — All sensor readings and predictions are computer-generated. Not real plant data.</p>
-              <p>i3 Technologies Ltd · IBM Silver Partner · East Africa Agentic AI Workshop 2026</p>
+                {/* What-If */}
+                <div className="card">
+                  <div className="card-title">What-If Analyst</div>
+                  <WhatIfSlider
+                    assetId={asset.asset_id}
+                    currentProb={failureProb ?? 0.08}
+                  />
+                </div>
+              </div>
             </div>
           </>
         ) : (
-          <div style={{
-            textAlign: 'center',
-            padding: '60px 20px',
-            background: 'white',
-            borderRadius: 12,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-          }}>
-            <h2 style={{ color: '#333' }}>Waiting for Sensor Data</h2>
-            <p style={{ color: '#666' }}>Connecting to WebSocket stream...</p>
-            <p style={{ fontSize: 12, color: '#aaa', marginTop: 16 }}>Status: {status}</p>
+          <div className="loading-screen">
+            <div className="spinner" />
+            <div className="loading-text">AWAITING SENSOR STREAM · {status.toUpperCase()}</div>
           </div>
         )}
       </div>
+
+      <footer className="footer">
+        SYNTHETIC DATA · i3 Technologies Ltd · IBM Silver Partner · East Africa Agentic AI Workshop 2026
+      </footer>
     </div>
   );
 }
