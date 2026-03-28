@@ -13,14 +13,16 @@
 | # | Step | Status | Owner |
 |---|------|--------|-------|
 | 1 | TechZone Provisioning | ⬜ Not Started | Wisdom |
-| 2 | Maximo Monitor Data Load | ⬜ Not Started | Wisdom |
+| 2 | Maximo Monitor Data Load | ✅ Complete | Wisdom |
 | 3 | Unity XR 3D Model | ⬜ Not Started | Maurine |
 | 4 | LSTM Training (Watson Studio) | ⬜ Not Started | Asenath |
-| 5 | Monte Carlo with Weibull | ⚠️ Partial | Asenath |
-| 6 | What-If in Unity | ⬜ Not Started | Maurine |
+| 5 | Monte Carlo with Weibull | ✅ Complete | Asenath |
+| 6 | What-If Calibration | ✅ Complete | Asenath |
 | 7 | CNN Anomaly AI | ⬜ Not Started | Asenath |
 | 8 | Maintenance Scheduler | ⬜ Not Started | Asenath |
 | 9 | OpenShift Deployment | ⬜ Not Started | Wisdom |
+
+**Progress:** 3/9 steps complete (33%)
 
 Full detail: [BUILD_GUIDE_STATUS.md](BUILD_GUIDE_STATUS.md)
 
@@ -54,6 +56,7 @@ OTDT/
 
 ## Quick Start (local / synthetic data only)
 
+### Option 1: Docker Compose (Recommended)
 ```bash
 cp .env.example .env        # fill TechZone credentials
 docker-compose up           # starts API + simulator
@@ -61,6 +64,29 @@ docker-compose up           # starts API + simulator
 # WebSocket:       ws://localhost:8000/twin/stream
 # API docs:        http://localhost:8000/docs
 ```
+
+### Option 2: Direct Python (Development)
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Start API server
+python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+
+# API docs:        http://localhost:8000/docs
+# WebSocket:       ws://localhost:8000/twin/stream
+# Health check:    http://localhost:8000/health
+```
+
+### Key Endpoints
+- `GET /health` — Health check
+- `GET /api/assets` — 50 GDC assets
+- `GET /api/twins/{asset_id}/sensors/latest` — Real-time sensor data
+- `POST /api/monte-carlo/simulate` — Monte Carlo simulation
+- `POST /api/monte-carlo/whatif` — What-If scenario (0 days=34%, 45 days=68%)
+- `POST /api/agent/trigger` — Cross-agent integration
+- `POST /maximo/workorder` — Create work order
+- `WS /twin/stream` — WebSocket stream for Unity
 
 ---
 
