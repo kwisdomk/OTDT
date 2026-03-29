@@ -153,7 +153,8 @@ class MaximoMonitorClient:
                 "pressure_bar": 19.1,
                 "vibration_mm_s": 4.2,  # CAUTION range (2.5-4.5)
                 "flow_rate_kg_s": 115.0,
-                "rotation_rpm": 3650
+                "rotation_rpm": 3650,
+                "health_score": 42.0  # CAUTION health score
             }
         
         # Extract asset class from asset_id (e.g., GDC-WP-007 -> WELL_PUMP)

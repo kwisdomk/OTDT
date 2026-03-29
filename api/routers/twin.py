@@ -139,8 +139,13 @@ async def get_latest_sensors(asset_id: str):
     asset_class = asset['asset_class']
     thresholds = SENSOR_THRESHOLDS.get(asset_class, SENSOR_THRESHOLDS["WELL_PUMP"])
     
-    # Calculate health score and status
-    health_score = calculate_health_score(sensors, thresholds)
+    # Use health_score from monitor_client if provided (e.g., WP-07 override)
+    # Otherwise calculate from sensor thresholds
+    if 'health_score' in sensors:
+        health_score = sensors.pop('health_score')  # Remove from sensors dict, use separately
+    else:
+        health_score = calculate_health_score(sensors, thresholds)
+    
     status, status_reason, colour_code = calculate_status(sensors, thresholds)
     
     return {
