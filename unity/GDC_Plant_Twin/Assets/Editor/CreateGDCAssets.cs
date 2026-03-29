@@ -44,10 +44,6 @@ public class CreateGDCAssets : EditorWindow
             // Position in grid layout (10 columns)
             go.transform.localPosition = new Vector3(col * 3f, 0, row * 3f);
             
-            // Add ColourController component
-            ColourController cc = go.AddComponent<ColourController>();
-            cc.assetId = assetId;
-            
             col++;
             if (col >= 10)
             {

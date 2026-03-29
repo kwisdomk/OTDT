@@ -10,8 +10,7 @@ using UnityEngine;
 using NativeWebSocket;
 using Newtonsoft.Json;
 
-namespace GDCPlantTwin
-{
+
     /// <summary>
     /// Manages WebSocket connection to the digital twin API
     /// Receives real-time asset state updates and broadcasts to Unity components
@@ -236,6 +235,7 @@ namespace GDCPlantTwin
             return LatestAssetStates.ContainsKey(assetId);
         }
     }
-}
+
 
 // Made with Bob
+

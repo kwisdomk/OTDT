@@ -24,8 +24,11 @@ def get_asset_loader() -> AssetLoader:
         _asset_loader = AssetLoader(mock_mode=True)
         try:
             _asset_loader.load_from_excel()
+            print(f"[Assets] Loaded {len(_asset_loader.assets)} assets from GDC_Assets.xlsx")
         except Exception as e:
-            print(f"Warning: Could not load assets: {e}")
+            print(f"[Assets ERROR] Could not load assets: {e}")
+            import traceback
+            traceback.print_exc()
     return _asset_loader
 
 

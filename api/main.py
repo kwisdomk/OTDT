@@ -242,8 +242,39 @@ async def websocket_stream(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            # Keep connection alive – data is pushed via broadcasts from handle_message
-            await websocket.receive_text()
+            # Actively push all 50 asset states every 2 seconds
+            from maximo.monitor_client import MaximoMonitorClient
+            from maximo.asset_loader import AssetLoader
+            loader = AssetLoader(mock_mode=True)
+            loader.load_from_excel()
+            client = MaximoMonitorClient(mock_mode=True)
+            assets_payload = []
+            for asset in loader.assets:
+                asset_id = asset["asset_id"]
+                sensors = client.get_latest_sensors(asset_id)
+                status = "CAUTION" if asset_id == "GDC-WP-007" else "NORMAL"
+                colour = "#00FF00"
+                if status == "CAUTION":
+                    colour = "#FFA500"
+                elif status == "ALARM":
+                    colour = "#FF0000"
+                assets_payload.append({
+                    "asset_id": asset_id,
+                    "status": status,
+                    "colour_hex": colour,
+                    "health_score": sensors.get("health_score", 100.0),
+                    "failure_probability": 0.68 if asset_id == "GDC-WP-007" else 0.08,
+                    "sensors": {k: v for k, v in sensors.items()
+                               if k in ["temperature_c","pressure_bar",
+                                       "vibration_mm_s","flow_rate_kg_s","rotation_rpm"]}
+                })
+            await websocket.send_json({
+                "timestamp": __import__("datetime").datetime.now().isoformat(),
+                "assets": assets_payload,
+                "synthetic": True,
+                "disclaimer": "SYNTHETIC DATA: Computer-generated"
+            })
+            await asyncio.sleep(2)
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 

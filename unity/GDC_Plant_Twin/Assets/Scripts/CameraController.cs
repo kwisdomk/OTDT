@@ -5,8 +5,7 @@
 
 using UnityEngine;
 
-namespace GDCPlantTwin
-{
+
     /// <summary>
     /// Provides intuitive camera controls for navigating the 3D plant model
     /// Supports rotation, zoom, and panning
@@ -310,6 +309,7 @@ namespace GDCPlantTwin
             }
         }
     }
-}
+
 
 // Made with Bob
+

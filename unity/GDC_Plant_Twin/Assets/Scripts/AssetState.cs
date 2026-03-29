@@ -5,8 +5,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace GDCPlantTwin
-{
+
     /// <summary>
     /// Represents the real-time state of a GDC asset from the digital twin API
     /// </summary>
@@ -56,6 +55,7 @@ namespace GDCPlantTwin
             assets = new List<AssetState>();
         }
     }
-}
+
 
 // Made with Bob
+

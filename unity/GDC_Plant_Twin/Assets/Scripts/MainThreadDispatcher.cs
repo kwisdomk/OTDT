@@ -7,8 +7,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace GDCPlantTwin
-{
+
     /// <summary>
     /// Singleton that dispatches actions to Unity's main thread
     /// WebSocket callbacks run on background threads and cannot directly modify Unity objects
@@ -90,6 +89,7 @@ namespace GDCPlantTwin
             return System.Threading.Thread.CurrentThread.ManagedThreadId == 1;
         }
     }
-}
+
 
 // Made with Bob
+

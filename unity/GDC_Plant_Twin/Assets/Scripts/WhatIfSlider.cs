@@ -110,6 +110,9 @@ public class WhatIfSlider : MonoBehaviour
         public float failure_probability;
         public string recommendation;
     }
-}
+
 
 // Made with Bob
+
+
+}

@@ -5,8 +5,7 @@
 
 using UnityEngine;
 
-namespace GDCPlantTwin
-{
+
     /// <summary>
     /// Manages asset selection through mouse clicks
     /// Uses raycasting to detect clicked assets and updates HUD
@@ -92,7 +91,7 @@ namespace GDCPlantTwin
                     
                     if (colourController != null)
                     {
-                        SelectAsset(hitObject, colourController.GetAssetId());
+                        SelectAsset(hitObject, colourController.assetId);
                     }
                     else
                     {
@@ -100,7 +99,7 @@ namespace GDCPlantTwin
                         colourController = hitObject.GetComponentInParent<ColourController>();
                         if (colourController != null)
                         {
-                            SelectAsset(colourController.gameObject, colourController.GetAssetId());
+                            SelectAsset(colourController.gameObject, colourController.assetId);
                         }
                         else
                         {
@@ -224,7 +223,7 @@ namespace GDCPlantTwin
             
             foreach (var controller in controllers)
             {
-                if (controller.GetAssetId() == assetId)
+                if (controller.assetId == assetId)
                 {
                     SelectAsset(controller.gameObject, assetId);
                     return;
@@ -251,6 +250,7 @@ namespace GDCPlantTwin
             }
         }
     }
-}
+
 
 // Made with Bob
+
