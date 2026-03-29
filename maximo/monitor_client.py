@@ -143,7 +143,19 @@ class MaximoMonitorClient:
         
         Uses asset_id + current minute as seed for slow variation.
         Build Guide Lines 199-200: 5 sensor channels per asset.
+        
+        DEMO OVERRIDE: GDC-WP-007 forced into CAUTION state for demo realism.
         """
+        # DEMO OVERRIDE: Force GDC-WP-007 into CAUTION state
+        if asset_id == "GDC-WP-007":
+            return {
+                "temperature_c": 208.5,  # CAUTION range (295-310)
+                "pressure_bar": 19.1,
+                "vibration_mm_s": 4.2,  # CAUTION range (2.5-4.5)
+                "flow_rate_kg_s": 115.0,
+                "rotation_rpm": 3650
+            }
+        
         # Extract asset class from asset_id (e.g., GDC-WP-007 -> WELL_PUMP)
         asset_class = self._infer_asset_class(asset_id)
         
