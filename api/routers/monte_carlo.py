@@ -19,13 +19,13 @@ router = APIRouter()
 class MonteCarloRequest(BaseModel):
     """Request for Monte Carlo simulation."""
     asset_id: str
-    sensor_state: Dict[str, float]
+    sensor_state: Optional[Dict[str, float]] = None
 
 class WhatIfRequest(BaseModel):
     """Request for What-If scenario simulation."""
     asset_id: str
-    sensor_state: Dict[str, float]
-    maintenance_date: str  # ISO format: YYYY-MM-DD
+    sensor_state: Optional[Dict[str, float]] = None
+    maintenance_date: str = "2026-05-14"  # ISO format: YYYY-MM-DD
 
 @router.post("/simulate")
 async def simulate(request: MonteCarloRequest):
@@ -96,3 +96,5 @@ async def health_check():
         "test_probability": result.get("failure_probability", 0),
         "synthetic": True
     }
+
+
