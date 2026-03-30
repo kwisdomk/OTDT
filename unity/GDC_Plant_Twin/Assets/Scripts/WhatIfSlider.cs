@@ -37,11 +37,13 @@ public class WhatIfSlider : MonoBehaviour
     {
         int days = Mathf.RoundToInt(value);
         
+        // Update deferral days text immediately
         if (deferralDaysText != null)
         {
             deferralDaysText.text = $"Deferral: {days} days";
         }
         
+        // Query API with rounded value
         StartCoroutine(QueryWhatIf(days));
     }
 
@@ -67,6 +69,7 @@ public class WhatIfSlider : MonoBehaviour
                 string responseText = request.downloadHandler.text;
                 var response = JsonConvert.DeserializeObject<WhatIfResponse>(responseText);
                 
+                // Update UI with response data
                 UpdateUI(response, deferralDays);
             }
             else
@@ -76,6 +79,10 @@ public class WhatIfSlider : MonoBehaviour
                 {
                     failureProbabilityText.text = "API Error";
                 }
+                if (expectedCostText != null)
+                {
+                    expectedCostText.text = "API Error";
+                }
             }
         }
     }
@@ -84,19 +91,17 @@ public class WhatIfSlider : MonoBehaviour
     {
         float probabilityPercent = response.failure_probability * 100f;
         
+        // Update failure probability text
         if (failureProbabilityText != null)
         {
             failureProbabilityText.text = $"Failure Probability: {probabilityPercent:F1}%";
         }
         
+        // Update expected cost text
         if (expectedCostText != null)
         {
             float expectedCost = response.failure_probability * FAILURE_COST_USD;
-            float roi = expectedCost - INSPECTION_COST_USD;
-            
-            expectedCostText.text = $"Expected Cost: ${expectedCost:N0}\n" +
-                                   $"Inspection Cost: ${INSPECTION_COST_USD:N0}\n" +
-                                   $"ROI: ${roi:N0}";
+            expectedCostText.text = $"Expected Cost: ${expectedCost:N0}";
         }
         
         Debug.Log($"What-If: {deferralDays} days → {probabilityPercent:F1}% failure probability");
