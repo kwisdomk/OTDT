@@ -1,110 +1,77 @@
-**/.git
+# ── Python ─────────────────────────────────────────────────────────────
 **/venv/
 **/__pycache__/
-**/*.pyc
-**/*.pyo
-**/*.pyd
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Docker
-*.log
-
-# Environment variables
-.env
-.env.local
-.env.*.local
-
-# Virtual environment
-venv/
-ENV/
-
-# Python
-__pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
 *.egg
+dist/
+*.whl
 
-# IDEs
+# ── Environment variables ──────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+.env.demo
+
+# ── IDE / Editor ───────────────────────────────────────────────────────
 .vscode/
 .idea/
+.cursor/
+.qodo/
 *.swp
 *.swo
 *~
 
-# OS generated files
+# ── OS generated ──────────────────────────────────────────────────────
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
+ehthumbs.db
+Desktop.ini
 
-# Logs
+# ── Docker ─────────────────────────────────────────────────────────────
 *.log
 logs/
 
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
+# ── Node / React ───────────────────────────────────────────────────────
+**/node_modules/
+frontend/react-dashboard/build/
 
-# Coverage
+# ── Unity 3D (GDC_Plant_Twin) ──────────────────────────────────────────
+# Generated project files
+unity/GDC_Plant_Twin/Library/
+unity/GDC_Plant_Twin/Temp/
+unity/GDC_Plant_Twin/Logs/
+unity/GDC_Plant_Twin/Builds/
+unity/GDC_Plant_Twin/UserSettings/
+unity/GDC_Plant_Twin/MemoryCaptures/
+unity/GDC_Plant_Twin/*.csproj
+unity/GDC_Plant_Twin/*.sln
+unity/GDC_Plant_Twin/.vsconfig
+
+# TextMesh Pro (auto-generated, re-imported on open)
+unity/GDC_Plant_Twin/Assets/TextMesh Pro/
+
+# ── Dead code archive (legacy, do not commit) ──────────────────────────
+NaN/
+
+# ── Data / Models (large binary files) ─────────────────────────────────
+*.h5
+*.hdf5
+*.pkl
+*.joblib
+datasets/*.xlsx
+!datasets/GDC_Assets.xlsx
+
+# ── Coverage / Testing ────────────────────────────────────────────────
 .coverage
 coverage.xml
 *.cover
-.hpcover
+htmlcov/
 
-
-# Python cache
-__pycache__/
+# ── Runtime ────────────────────────────────────────────────────────────
+*.pid
+*.pid.lock
+*.seed

@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from api.db.timescale import init_schema, store_reading
 from api.db.redis_client import set_asset_state, get_all_asset_states
 from api.anomaly.detector import detector
-from api.routers import whatif, maximo, twin, assets, monte_carlo, sensors, agent
+from api.routers import whatif, maximo, twin, assets, monte_carlo, sensors, agent, watsonx, anomaly, predict
 
 # Monte Carlo integration
 from monte_carlo.engine import run_simulation
@@ -156,13 +156,16 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(assets.router, prefix="/api", tags=["Assets"])
-app.include_router(monte_carlo.router, prefix="/api/monte-carlo", tags=["Monte Carlo"])
-app.include_router(twin.router, prefix="/api", tags=["Digital Twin"])
-app.include_router(sensors.router, prefix="/api", tags=["Sensors"])
-app.include_router(whatif.router, prefix="/whatif", tags=["What-If Analysis"])
-app.include_router(maximo.router, prefix="/maximo", tags=["Maximo"])
-app.include_router(agent.router, prefix="/api", tags=["Agent Integration"])
+app.include_router(assets.router,       prefix="/api",              tags=["Assets"])
+app.include_router(monte_carlo.router,  prefix="/api/monte-carlo",  tags=["Monte Carlo"])
+app.include_router(twin.router,         prefix="/api",              tags=["Digital Twin"])
+app.include_router(sensors.router,      prefix="/api",              tags=["Sensors"])
+app.include_router(whatif.router,       prefix="/whatif",           tags=["What-If Analysis"])
+app.include_router(maximo.router,       prefix="/maximo",           tags=["Maximo"])
+app.include_router(watsonx.router,      prefix="/api/watsonx",      tags=["IBM watsonx.ai"])
+app.include_router(agent.router,        prefix="/api",              tags=["Agent Integration"])
+app.include_router(anomaly.router,      prefix="/api",              tags=["CNN Anomaly"])       # Track B – Step 7
+app.include_router(predict.router,      prefix="/api",              tags=["LSTM Prediction"])   # Track B – Step 4
 
 
 # ── Health & Status Endpoints ──────────────────────────────────────────
@@ -236,44 +239,70 @@ async def sensors_latest():
     }
 
 
+# ── WebSocket Singletons (created once, not per-tick) ─────────────────────
+# Initialise at module level so the WebSocket handler doesn't rebuild them
+# every 2 seconds (was causing Excel reads on every broadcast tick).
+try:
+    from maximo.monitor_client import MaximoMonitorClient as _MonitorClient
+    from maximo.asset_loader import AssetLoader as _AssetLoader
+    _ws_loader = _AssetLoader(mock_mode=True)
+    _ws_loader.load_from_excel()
+    _ws_client = _MonitorClient(mock_mode=True)
+    print(f"[WS] Asset loader ready — {len(_ws_loader.assets)} assets")
+except Exception as e:
+    _ws_loader = None
+    _ws_client = None
+    print(f"[WS] Asset loader unavailable: {e} — WebSocket will use Redis cache only")
+
+
 # ── WebSocket Endpoint ─────────────────────────────────────────────────
 @app.websocket("/twin/stream")
 async def websocket_stream(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            # Actively push all 50 asset states every 2 seconds
-            from maximo.monitor_client import MaximoMonitorClient
-            from maximo.asset_loader import AssetLoader
-            loader = AssetLoader(mock_mode=True)
-            loader.load_from_excel()
-            client = MaximoMonitorClient(mock_mode=True)
-            assets_payload = []
-            for asset in loader.assets:
-                asset_id = asset["asset_id"]
-                sensors = client.get_latest_sensors(asset_id)
-                status = "CAUTION" if asset_id == "GDC-WP-007" else "NORMAL"
-                colour = "#00FF00"
-                if status == "CAUTION":
-                    colour = "#FFA500"
-                elif status == "ALARM":
-                    colour = "#FF0000"
-                assets_payload.append({
-                    "asset_id": asset_id,
-                    "status": status,
-                    "colour_hex": colour,
-                    "health_score": sensors.get("health_score", 100.0),
-                    "failure_probability": 0.68 if asset_id == "GDC-WP-007" else 0.08,
-                    "sensors": {k: v for k, v in sensors.items()
-                               if k in ["temperature_c","pressure_bar",
-                                       "vibration_mm_s","flow_rate_kg_s","rotation_rpm"]}
+            import datetime as _dt
+
+            # Try Redis cache first (populated by Kafka pipeline)
+            cached = await get_all_asset_states()
+            if cached:
+                await websocket.send_json({
+                    "timestamp": _dt.datetime.now().isoformat(),
+                    "assets": cached,
+                    "synthetic": True,
+                    "disclaimer": "SYNTHETIC DATA: Computer-generated"
                 })
-            await websocket.send_json({
-                "timestamp": __import__("datetime").datetime.now().isoformat(),
-                "assets": assets_payload,
-                "synthetic": True,
-                "disclaimer": "SYNTHETIC DATA: Computer-generated"
-            })
+            elif _ws_loader and _ws_client:
+                # Fallback: build payload from mock asset loader (no Kafka)
+                assets_payload = []
+                for asset in _ws_loader.assets:
+                    asset_id = asset["asset_id"]
+                    sensors = _ws_client.get_latest_sensors(asset_id)
+                    is_demo_asset = asset_id in ("GDC-WP-007", "WP-007")
+                    status = "WARNING" if is_demo_asset else "NORMAL"
+                    colour = "#FFA500" if is_demo_asset else "#1E6B3C"
+                    assets_payload.append({
+                        "asset_id": asset_id,
+                        "asset_label": asset.get("asset_label", asset_id),
+                        "status": status,
+                        "colour_hex": colour,
+                        "health_score": sensors.get("health_score", 92.0),
+                        "failure_probability": 0.34 if is_demo_asset else 0.08,
+                        "recommended_action": "SCHEDULE_MAINTENANCE" if is_demo_asset else "MONITOR",
+                        "sensors": {
+                            "bearing_temp_c": sensors.get("temperature_c", 83.0),
+                            "bearing_vibration_mms": sensors.get("vibration_mm_s", 4.2),
+                            "steam_inlet_pressure_bar": sensors.get("pressure_bar", 68.0),
+                        },
+                        "synthetic": True,
+                    })
+                await websocket.send_json({
+                    "timestamp": _dt.datetime.now().isoformat(),
+                    "assets": assets_payload,
+                    "synthetic": True,
+                    "disclaimer": "SYNTHETIC DATA: Computer-generated"
+                })
+
             await asyncio.sleep(2)
     except WebSocketDisconnect:
         manager.disconnect(websocket)

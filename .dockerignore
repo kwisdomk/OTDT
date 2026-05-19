@@ -1,0 +1,18 @@
+venv
+**/venv
+**/__pycache__
+__pycache__
+*.pyc
+*.pyo
+.env
+.git
+.gitignore
+*.md
+datasets/*.xlsx
+ml/lstm/models
+ml/cnn_anomaly/models
+frontend/react-dashboard/node_modules
+frontend/react-dashboard/build
+unity
+docs
+build guides

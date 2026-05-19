@@ -1,15 +1,19 @@
-import json, time, sys
+import json, time, sys, os
 import numpy as np
 from datetime import datetime, timezone
 from kafka import KafkaProducer
 from config import INTERVAL, ASSET_ID, ASSET_TYPE
 
-BROKER      = 'localhost:9092'
-TOPIC       = 'ot-twin-sensors'
+# Read from env so Docker Compose can inject kafka:9092 (container network)
+# Fallback to localhost:29092 for direct host-machine use
+BROKER = os.getenv('KAFKA_BROKER', 'localhost:29092')
+TOPIC  = os.getenv('KAFKA_TOPIC', 'sensor.telemetry')
 
 producer = KafkaProducer(
     bootstrap_servers=[BROKER],
-    value_serializer=lambda v: json.dumps(v).encode('utf-8')
+    value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+    retries=5,
+    retry_backoff_ms=500,
 )
 
 print(f'[KAFKA] Publishing to {BROKER} topic {TOPIC} every {INTERVAL}s | --demo for timed anomaly')

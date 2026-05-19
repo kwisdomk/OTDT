@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useWebSocket } from './hooks/useWebSocket';
 import WhatIfSlider from './components/WhatIfSlider';
+import WatsonXQueryPanel from './components/WatsonXQueryPanel';
 import './App.css';
 
 // Human-readable sensor config — maps simulator keys → label + unit
@@ -177,6 +178,9 @@ export default function App() {
                 </div>
               </div>
             </div>
+
+            {/* IBM watsonx.ai NLP Query Panel */}
+            <WatsonXQueryPanel />
           </>
         ) : (
           <div className="loading-screen">
