@@ -115,35 +115,98 @@ def run_simulation(sensor_state: dict, n: int = 10_000) -> dict:
 
 def whatif_simulation(sensor_state: dict, maintenance_days: int, n: int = 10_000) -> dict:
     """
-    What-If scenario: probability if maintenance deferred N days.
-    Calibrated for demo: 0 days = 34%, 45 days = 68%
-    
+    What-If scenario: failure probability if maintenance deferred N days.
+
+    Projects current sensor readings forward using the physics-based drift
+    model, then runs the full Weibull Monte Carlo simulation on the degraded
+    state.  This replaces the earlier hardcoded linear curve with an actual
+    probabilistic engine call (Build Guide Step 6).
+
     Args:
-        sensor_state: current sensor readings
-        maintenance_days: days to defer maintenance
-        n: Monte Carlo iterations
-    
+        sensor_state: current sensor readings dict
+        maintenance_days: days to defer maintenance (slider value 0–180)
+        n: Monte Carlo iterations (default 10,000)
+
     Returns:
-        dict with failure_probability, recommended_action, expected_cost_usd
+        dict with failure_probability, time-window breakdown, cost, action
     """
-    # For demo calibration (Build Guide Step 6)
-    # 0 days = 34%, 45 days = 68%
-    if maintenance_days <= 45:
-        probability = 0.34 + (maintenance_days / 45) * (0.68 - 0.34)
+    # --- 1. Base sensor values (WP-07 demo defaults) ---
+    temp_now  = _safe_float(sensor_state, "bearing_temp_c", 85.0)
+    vib_now   = _safe_float(sensor_state, "bearing_vibration_mms", 4.2)
+    pres_now  = _safe_float(sensor_state, "steam_inlet_pressure_bar", 68.0)
+
+    # --- 2. Project degradation forward by maintenance_days ---
+    #   Vibration drifts at DRIFT_RATE mm/s per day
+    #   Temperature drifts at 2x vibration drift (correlated wear)
+    #   Pressure is mostly stable (slow seal degradation: 0.01 bar/day)
+    vib_projected  = vib_now  + DRIFT_RATE * maintenance_days
+    temp_projected = temp_now + DRIFT_RATE * 2.0 * maintenance_days
+    pres_projected = pres_now + 0.01 * maintenance_days
+
+    # --- 3. Run full Weibull Monte Carlo on projected state ---
+    projected_state = {
+        "bearing_temp_c": temp_projected,
+        "bearing_vibration_mms": vib_projected,
+        "steam_inlet_pressure_bar": pres_projected,
+    }
+    mc_result = run_simulation(projected_state, n=n)
+    probability = mc_result["failure_probability"]
+
+    # --- 4. Multi-window probability breakdown (per Build Guide Step 5) ---
+    #   Run smaller simulations for each time window by scaling drift
+    windows = {}
+    for window_days in [7, 14, 30, 60, 90]:
+        frac = min(window_days / max(maintenance_days, 1), 1.0)
+        w_state = {
+            "bearing_temp_c": temp_now + DRIFT_RATE * 2.0 * maintenance_days * frac,
+            "bearing_vibration_mms": vib_now + DRIFT_RATE * maintenance_days * frac,
+            "steam_inlet_pressure_bar": pres_now + 0.01 * maintenance_days * frac,
+        }
+        w_result = run_simulation(w_state, n=n // 2)  # half-iterations for speed
+        windows[f"{window_days}d"] = round(w_result["failure_probability"], 4)
+
+    # --- 5. Cost quantification (Build Guide Step 6) ---
+    replacement_cost = 180_000  # USD for geothermal well pump
+    inspection_cost  =   8_000  # USD per inspection
+    expected_failure_cost = probability * replacement_cost
+
+    # --- 6. Confidence intervals from MC sampling ---
+    #   Re-sample to get percentile bounds
+    temp_scale = temp_projected / WEIBULL_PARAMS["temperature"]["scale"]
+    vib_scale  = vib_projected  / WEIBULL_PARAMS["vibration"]["scale"]
+
+    vib_samples = weibull_min.rvs(
+        WEIBULL_PARAMS["vibration"]["shape"],
+        scale=WEIBULL_PARAMS["vibration"]["scale"],
+        size=n,
+    ) * vib_scale
+    fail_fractions = (vib_samples > THRESHOLDS["bearing_vibration_mms"]).astype(float)
+    ci_low  = float(np.percentile(fail_fractions, 5))
+    ci_high = float(np.percentile(fail_fractions, 95))
+
+    # --- 7. Action recommendation ---
+    if probability < 0.10:
+        action = "MONITOR"
+    elif probability < 0.25:
+        action = "SCHEDULE_MAINTENANCE"
     else:
-        # Beyond 45 days, probability increases more slowly, capped at 95%
-        probability = 0.68 + ((maintenance_days - 45) / 135) * (1.0 - 0.68)
-        probability = min(probability, 0.95)
-    
-    replacement_cost = 180000  # USD for well pump
-    
+        action = "URGENT"
+
     return {
         "failure_probability": round(probability, 4),
-        "recommended_action": "URGENT" if probability > 0.5 else "SCHEDULE_MAINTENANCE",
-        "expected_cost_usd": round(probability * replacement_cost, 0),
+        "failure_probability_windows": windows,
+        "confidence_interval": {"p5": round(ci_low, 4), "p95": round(ci_high, 4)},
+        "recommended_action": action,
+        "expected_cost_usd": round(expected_failure_cost, 0),
+        "inspection_cost_usd": inspection_cost,
+        "roi_ratio": round(expected_failure_cost / inspection_cost, 1) if inspection_cost else None,
         "maintenance_deferral_days": maintenance_days,
+        "projected_sensors": projected_state,
+        "simulation_iterations": n,
+        "optimal_maintenance_day": mc_result.get("optimal_maintenance_day"),
         "synthetic": True,
-        "disclaimer": "⚠️ SYNTHETIC DATA: All readings are computer-generated."
+        "disclaimer": "⚠️ SYNTHETIC DATA: All readings are computer-generated.",
     }
+
 
 # Made with Bob
