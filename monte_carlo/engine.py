@@ -4,7 +4,7 @@ Monte Carlo failure probability engine with Weibull distributions.
 Build Guide Step 5: Weibull distribution fitting using scipy.stats.weibull_min
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import numpy as np
 from scipy.stats import weibull_min
 import os
@@ -99,7 +99,7 @@ def run_simulation(sensor_state: dict, n: int = 10_000) -> dict:
         action = "URGENT"
     
     # Optimal maintenance day
-    optimal_day = (datetime.utcnow() + timedelta(days=max(1, days_to_failure_p50 - 5))).strftime("%Y-%m-%d")
+    optimal_day = (datetime.now(timezone.utc) + timedelta(days=max(1, days_to_failure_p50 - 5))).strftime("%Y-%m-%d")
     
     return {
         "failure_probability": round(failure_probability, 4),
@@ -197,6 +197,8 @@ def whatif_simulation(sensor_state: dict, maintenance_days: int, n: int = 10_000
         "failure_probability_windows": windows,
         "confidence_interval": {"p5": round(ci_low, 4), "p95": round(ci_high, 4)},
         "recommended_action": action,
+        "days_to_failure_p50": mc_result.get("days_to_failure_p50"),
+        "days_to_failure_p95": mc_result.get("days_to_failure_p95"),
         "expected_cost_usd": round(expected_failure_cost, 0),
         "inspection_cost_usd": inspection_cost,
         "roi_ratio": round(expected_failure_cost / inspection_cost, 1) if inspection_cost else None,

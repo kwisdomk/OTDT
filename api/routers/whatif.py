@@ -1,17 +1,13 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import Optional
-import importlib.util, pathlib
+from datetime import date as _date
 
 # Fix: import get_active_alerts so /alerts doesn't crash
 from api.integrations.maximo_client import get_active_alerts
+from monte_carlo.engine import whatif_simulation
 
 router = APIRouter()
-
-mc_path = pathlib.Path(__file__).parent.parent.parent / 'monte_carlo' / 'engine.py'
-spec    = importlib.util.spec_from_file_location('engine', mc_path)
-mc_mod  = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(mc_mod)
 
 
 class WhatIfRequest(BaseModel):
@@ -31,13 +27,18 @@ async def whatif_simulate(req: WhatIfRequest):
     state = await get_asset_state(req.asset_id)
     if not state:
         state = {}  # Use defaults if asset not yet in cache
-    return mc_mod.whatif_simulation(state.get('sensors', {}), req.maintenance_date)
+
+    # Convert ISO date string to deferral days (int) for the MC engine
+    days = (_date.fromisoformat(req.maintenance_date) - _date.today()).days
+    days = max(0, min(days, 180))
+
+    return whatif_simulation(state.get('sensors', {}), days)
 
 
 @router.post('/simulate-days')
 async def whatif_simulate_days(req: WhatIfDaysRequest):
     """What-If simulation by number of days to defer (for slider use)."""
-    return mc_mod.whatif_simulation({}, req.deferral_days)
+    return whatif_simulation({}, req.deferral_days)
 
 
 @router.get('/alerts')

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import './WatsonXQueryPanel.css';
 
+const API = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
 const WatsonXQueryPanel = () => {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,7 +29,7 @@ const WatsonXQueryPanel = () => {
     setResult(null);
 
     try {
-      const response = await fetch('http://localhost:8000/api/watsonx/whatif-nlp', {
+      const response = await fetch(`${API}/api/watsonx/whatif-nlp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

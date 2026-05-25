@@ -6,7 +6,6 @@ export function useWebSocket(url) {
 
   const wsRef = useRef(null);
   const reconnectTimerRef = useRef(null);
-  const heartbeatTimerRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
   const mountedRef = useRef(false);
 
@@ -22,10 +21,6 @@ export function useWebSocket(url) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
       }
-      if (heartbeatTimerRef.current) {
-        clearInterval(heartbeatTimerRef.current);
-        heartbeatTimerRef.current = null;
-      }
     };
 
     const connect = () => {
@@ -39,17 +34,8 @@ export function useWebSocket(url) {
       ws.onopen = () => {
         reconnectAttemptsRef.current = 0;
         setStatus('connected');
-
-        // Heartbeat: prevents idle disconnects via proxies/load balancers.
-        heartbeatTimerRef.current = setInterval(() => {
-          try {
-            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-              wsRef.current.send('ping');
-            }
-          } catch (_) {
-            // ignore heartbeat failures
-          }
-        }, 20000);
+        // No app-level heartbeat needed: server pushes every 2s which keeps
+        // the connection alive through proxies and load balancers.
       };
 
       ws.onmessage = (e) => {

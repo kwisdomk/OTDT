@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 # Local imports
 from api.db.timescale import init_schema, store_reading
-from api.db.redis_client import set_asset_state, get_all_asset_states
+from api.db.redis_client import set_asset_state, get_all_asset_states, get_redis
 from api.anomaly.detector import detector
 from api.routers import whatif, maximo, twin, assets, monte_carlo, sensors, agent, watsonx, anomaly, predict
 
@@ -174,6 +174,50 @@ async def health():
     return {"status": "ok", "service": "ot-digital-twin", "synthetic": True}
 
 
+@app.get("/ready")
+async def ready():
+    """Readiness probe for OpenShift — checks all downstream dependencies."""
+    checks = {}
+
+    # Redis check
+    try:
+        r = await get_redis()
+        if r:
+            await r.ping()
+            checks["redis"] = "ok"
+        else:
+            checks["redis"] = "mock"  # mock mode is still ready
+    except Exception as e:
+        checks["redis"] = f"error: {e}"
+
+    # TimescaleDB check
+    try:
+        from api.db.timescale import get_pool
+        pool = await get_pool()
+        if pool:
+            async with pool.acquire() as conn:
+                await conn.fetchval("SELECT 1")
+            checks["timescaledb"] = "ok"
+        else:
+            checks["timescaledb"] = "mock"  # mock mode is still ready
+    except Exception as e:
+        checks["timescaledb"] = f"error: {e}"
+
+    # Kafka check (lightweight — just see if consumer import worked)
+    try:
+        from kafka import KafkaConsumer  # noqa: F401
+        checks["kafka"] = "available"
+    except ImportError:
+        checks["kafka"] = "unavailable (kafka-python not installed)"
+
+    all_ok = all(v in ("ok", "mock", "available") for v in checks.values())
+    return {
+        "ready": all_ok,
+        "checks": checks,
+        "synthetic": True,
+    }
+
+
 @app.get("/status")
 async def status():
     return {
@@ -290,6 +334,7 @@ async def websocket_stream(websocket: WebSocket):
                         "failure_probability": 0.34 if is_demo_asset else 0.08,
                         "recommended_action": "SCHEDULE_MAINTENANCE" if is_demo_asset else "MONITOR",
                         "sensors": {
+                            # Remap monitor_client keys → dashboard-expected keys
                             "bearing_temp_c": sensors.get("temperature_c", 83.0),
                             "bearing_vibration_mms": sensors.get("vibration_mm_s", 4.2),
                             "steam_inlet_pressure_bar": sensors.get("pressure_bar", 68.0),

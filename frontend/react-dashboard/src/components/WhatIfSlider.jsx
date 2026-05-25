@@ -99,7 +99,7 @@ export default function WhatIfSlider({ assetId, currentProb }) {
               {pct(projected)}
             </div>
             <div style={{ fontSize: 11, color: '#64748b', fontFamily: 'IBM Plex Mono', marginTop: 4 }}>
-              {result.days_deferred}d deferred · ~{result.days_to_failure_p50}d to failure
+              {result.maintenance_deferral_days}d deferred · ~{result.days_to_failure_p50}d to failure
             </div>
           </div>
           <span className={actionClass(result.recommended_action)}>

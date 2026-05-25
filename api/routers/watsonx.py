@@ -53,15 +53,10 @@ async def whatif_nlp(request: WatsonXQueryRequest):
         # Step 2: Calculate maintenance date
         maintenance_date = (date.today() + timedelta(days=deferral_days)).isoformat()
         
-        # Step 3: Run What-If simulation using existing logic
-        # DEMO CALIBRATION — Build Guide Step 6
-        # 0 days = 34%, 45 days = 68%
-        if deferral_days <= 45:
-            probability = 0.34 + (deferral_days / 45) * (0.68 - 0.34)
-        else:
-            # Beyond 45 days, probability increases more slowly, capped at 95%
-            probability = 0.68 + ((deferral_days - 45) / 135) * (1.0 - 0.68)
-            probability = min(probability, 0.95)
+        # Step 3: Run What-If simulation via Monte Carlo engine
+        from monte_carlo.engine import whatif_simulation
+        mc_result = whatif_simulation({}, deferral_days)
+        probability = mc_result["failure_probability"]
         
         # Step 4: Calculate expected cost
         replacement_cost = 180000  # USD for well pump (Build Guide)
