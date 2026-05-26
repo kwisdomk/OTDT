@@ -3,7 +3,8 @@
 ## Required Read
 
 Before planning, writing, reviewing, or changing OTDT product behaviour or
-documentation, read `docs/Product Baseline.md` and `docs/Decision Log.md`.
+documentation, read `docs/Product Baseline.md`, `docs/Decision Log.md` and
+`docs/Implementation Checklist.md`.
 
 ## Source Of Truth
 
@@ -32,6 +33,9 @@ interpretation.
 - IBM integration and cloud-training execution are paused under `OTD-008`
   until the project owner reactivates them. Preserve them as baseline
   requirements; do not remove them or claim successful IBM execution.
+- Maintain `docs/Implementation Checklist.md` as the living progress record.
+  Tick items only with stated evidence and record the verification time in
+  EAT; code presence alone does not prove original acceptance criteria.
 - Record approved extensions, baseline interpretations, or baseline revisions
   in `docs/Decision Log.md`.
 
