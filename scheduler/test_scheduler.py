@@ -1,13 +1,16 @@
-"""Quick test for the Maintenance Scheduler (Fix 6 validation)."""
-import sys, os
-sys.path.insert(0, r"q:\ibm\EAAAIW @ IBM Research Lab Africa\OTDT\otdt\OTDT")
+"""Quick test for the Maintenance Scheduler."""
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
 import pandas as pd
 from scheduler.optimizer import MaintenanceScheduler
 from monte_carlo.engine import run_simulation
 
 # Load real GDC assets
-df = pd.read_excel(r"q:\ibm\EAAAIW @ IBM Research Lab Africa\OTDT\otdt\OTDT\datasets\GDC_Assets.xlsx")
+df = pd.read_excel(ROOT / "datasets" / "GDC_Assets.xlsx")
 assets = df.to_dict("records")
 for a in assets:
     if hasattr(a.get("last_maintenance_date", ""), "isoformat"):

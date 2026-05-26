@@ -5,17 +5,20 @@ import WhatIfSlider from './components/WhatIfSlider';
 import WatsonXQueryPanel from './components/WatsonXQueryPanel';
 import './App.css';
 
-// Human-readable sensor config — maps simulator keys → label + unit
+// Human-readable sensor config. Baseline keys are primary; legacy stream keys
+// remain accepted until the sensor-contract migration is resolved.
 const SENSOR_META = {
+  temperature_c:           { label: 'Temperature',     unit: '°C'   },
+  pressure_bar:            { label: 'Pressure',        unit: 'bar'  },
+  vibration_mm_s:          { label: 'Vibration',       unit: 'mm/s' },
+  flow_rate_kg_s:          { label: 'Flow Rate',       unit: 'kg/s' },
+  rotation_rpm:            { label: 'Rotation',        unit: 'rpm'  },
   bearing_temp_c:          { label: 'Bearing Temp',    unit: '°C'   },
   bearing_vibration_mms:   { label: 'Vibration',       unit: 'mm/s' },
   steam_inlet_temp_c:      { label: 'Steam Inlet Temp',unit: '°C'   },
   steam_inlet_pressure_bar:{ label: 'Steam Pressure',  unit: 'bar'  },
   turbine_rpm:             { label: 'Turbine RPM',     unit: 'rpm'  },
   steam_flow_kgs:          { label: 'Steam Flow',      unit: 'kg/s' },
-  // fallbacks for short-key simulators
-  temperature_c:           { label: 'Temperature',     unit: '°C'   },
-  pressure_bar:            { label: 'Pressure',        unit: 'bar'  },
   vibration_mms:           { label: 'Vibration',       unit: 'mm/s' },
   flow_rate_ls:            { label: 'Flow Rate',       unit: 'L/s'  },
 };
@@ -41,7 +44,7 @@ export default function App() {
     if (!data?.assets?.length) return;
     const a = data.assets[0];
     setAsset(a);
-    const vib = a?.sensors?.bearing_vibration_mms ?? a?.sensors?.vibration_mms;
+    const vib = a?.sensors?.vibration_mm_s ?? a?.sensors?.bearing_vibration_mms ?? a?.sensors?.vibration_mms;
     if (vib != null) {
       setHistory(prev => [
         ...prev.slice(-19),

@@ -1,8 +1,9 @@
 """
-LangGraph Agent Integration API.
+Agent Integration API — supporting implementation.
 
 Provides trigger endpoint for cross-agent communication.
-GridSentinel fires event → LangGraph routes to OTDT → OTDT runs Monte Carlo → returns risk assessment.
+This is a supporting integration (not an original baseline agent).
+GridSentinel fires event → routes to OTDT → OTDT runs Monte Carlo → returns risk assessment.
 
 ⚠️ SYNTHETIC DATA: All simulations use computer-generated sensor data.
 """
@@ -40,10 +41,10 @@ class AgentTriggerResponse(BaseModel):
 
 @router.post('/agent/trigger', response_model=AgentTriggerResponse)
 async def agent_trigger(request: AgentTriggerRequest):
-    """Handle agent trigger event from LangGraph.
+    """Handle agent trigger event (supporting integration).
     
-    Build Guide: This is the cross-agent integration endpoint for the 30 March demo.
-    GridSentinel detects anomaly → LangGraph routes to OTDT → OTDT runs Monte Carlo.
+    Cross-agent integration endpoint for demo purposes.
+    GridSentinel detects anomaly → routes to OTDT → OTDT runs Monte Carlo.
     
     Demo flow:
     1. GridSentinel detects anomaly in GDC-WP-007
@@ -73,11 +74,16 @@ async def agent_trigger(request: AgentTriggerRequest):
         # Run Monte Carlo simulation
         mc_result = run_simulation(sensor_state, n=10000)
         
-        # Calculate ROI impact
-        # Build Guide: Platform cost USD 48k, savings USD 360k = 650% ROI
-        replacement_cost = 160000.0  # Average GDC asset replacement cost
-        maintenance_cost = 12000.0   # Preventive maintenance cost
-        platform_cost = 48000.0      # Annual OTDT platform cost
+        # Calculate scenario-level ROI impact for this integration event.
+        # Cost inputs are aligned with the baseline demo narrative:
+        #   USD 180k unplanned failure, USD 8k inspection, USD 48k annual platform.
+        # NOTE: This per-event calculation is NOT the official annual 650% ROI
+        # narrative (two avoided failures = USD 360k savings / USD 48k platform
+        # cost).  The annual business-case figure is a separate baseline
+        # presentation metric.
+        replacement_cost = 180000.0  # Unplanned failure cost (baseline: USD 180,000)
+        maintenance_cost = 8000.0    # Inspection / preventive maintenance cost (baseline: USD 8,000)
+        platform_cost = 48000.0      # Annual OTDT platform cost (baseline: USD 48,000)
         
         # Expected cost without OTDT (reactive maintenance)
         reactive_cost = replacement_cost * mc_result["failure_probability"]
@@ -85,7 +91,7 @@ async def agent_trigger(request: AgentTriggerRequest):
         # Expected cost with OTDT (preventive maintenance)
         preventive_cost = maintenance_cost + (platform_cost / 50)  # Amortize platform cost across 50 assets
         
-        # Savings and ROI
+        # Per-event savings and ROI (scenario-level, not annual business-case)
         expected_savings = reactive_cost - preventive_cost
         roi_percentage = (expected_savings / (platform_cost / 50)) * 100 if platform_cost > 0 else 0
         

@@ -2,8 +2,8 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-ASSET_ID    = os.getenv('WATSON_IOT_DEVICE_ID',   'GDC-TURBINE-01')
-ASSET_TYPE  = os.getenv('WATSON_IOT_DEVICE_TYPE', 'geothermal_turbine')
+ASSET_ID    = os.getenv('WATSON_IOT_DEVICE_ID',   'GDC-WP-007')
+ASSET_TYPE  = os.getenv('WATSON_IOT_DEVICE_TYPE', 'well_pump')
 ORG         = os.getenv('WATSON_IOT_ORG_ID')
 AUTH_TOKEN  = os.getenv('WATSON_IOT_AUTH_TOKEN')
 INTERVAL    = float(os.getenv('PUBLISH_INTERVAL_SECONDS', 1))

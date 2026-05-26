@@ -334,10 +334,11 @@ async def websocket_stream(websocket: WebSocket):
                         "failure_probability": 0.34 if is_demo_asset else 0.08,
                         "recommended_action": "SCHEDULE_MAINTENANCE" if is_demo_asset else "MONITOR",
                         "sensors": {
-                            # Remap monitor_client keys → dashboard-expected keys
-                            "bearing_temp_c": sensors.get("temperature_c", 83.0),
-                            "bearing_vibration_mms": sensors.get("vibration_mm_s", 4.2),
-                            "steam_inlet_pressure_bar": sensors.get("pressure_bar", 68.0),
+                            "temperature_c": sensors.get("temperature_c", 83.0),
+                            "pressure_bar": sensors.get("pressure_bar", 68.0),
+                            "vibration_mm_s": sensors.get("vibration_mm_s", 4.2),
+                            "flow_rate_kg_s": sensors.get("flow_rate_kg_s", 12.0),
+                            "rotation_rpm": sensors.get("rotation_rpm", 3600.0),
                         },
                         "synthetic": True,
                     })

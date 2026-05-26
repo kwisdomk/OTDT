@@ -3,6 +3,11 @@
 **Agentic AI Operating Layer for Geothermal Critical Infrastructure**
 
 > ⚠️ **SYNTHETIC DATA**: All sensor readings and AI predictions are generated from simulation models. Not real plant data.
+>
+> **PRODUCT BASELINE**: Development must conform to the original March 2026
+> OTDT source artifacts. Read [docs/Product Baseline.md](docs/Product%20Baseline.md)
+> and [docs/Decision Log.md](docs/Decision%20Log.md) before changing
+> product scope, architecture claims, demo figures or status.
 
 Real-time industrial digital twin for geothermal plant operations — Monte Carlo failure prediction, LSTM anomaly detection, and live Unity XR visualisation. Built on IBM Maximo MAS 9.1 + watsonx.ai + Red Hat OpenShift.
 

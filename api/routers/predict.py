@@ -137,12 +137,13 @@ def _predict_synthetic(sensor_state: Dict[str, Any], asset_id: str = "") -> Dict
     """
     Deterministic synthetic prediction for demo / development.
 
-    GDC-WP-007 is the hero asset: calibrated to return ~45% at demo sensor values.
-    Other assets scale smoothly with bearing_temp_c and vibration.
+    GDC-WP-007 is the hero asset: returns 0.34 (baseline demo: 34% 30-day
+    failure probability).  Other assets scale smoothly with bearing_temp_c
+    and vibration.
     """
     # Demo override for the hero asset
     if asset_id in ("GDC-WP-007", "WP-007"):
-        prob = 0.453
+        prob = 0.34
     else:
         temp = sensor_state.get("bearing_temp_c", 85.0)
         vib  = sensor_state.get("bearing_vibration_mms", 4.2)
@@ -173,14 +174,14 @@ def _build_result(prob: float, sensor_state: Dict[str, Any], source: str) -> Dic
         "recommended_action":    action,
         "optimal_maintenance_day": (now + timedelta(days=days_p50)).strftime("%Y-%m-%d"),
         "model_source":          source,
-        "auc_roc":               0.847 if source != "synthetic" else None,
+        "auc_roc":               None,  # No validated model metadata loaded; do not hardcode
         "timestamp":             now.isoformat(),
         "synthetic":             source == "synthetic",
         "disclaimer": (
             "⚠️ SYNTHETIC DATA — LSTM model not yet trained. "
             "Predictions are deterministic simulations for integration purposes only."
             if source == "synthetic"
-            else "LSTM failure prediction. AUC-ROC ≥ 0.82."
+            else "LSTM failure prediction. Model validation pending."
         ),
     }
 
