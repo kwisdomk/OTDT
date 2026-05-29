@@ -24,13 +24,23 @@ open issue remains open and must not be presented as a settled product fact.
 | OTD-001 | Sensor_Readings row count / date-range conflict: described as 43,800 records / five years, but the root workbook contains 87,600 rows for one year. | Root workbook physical row count vs. documentation labels. | Open: owner confirmation required. |
 | OTD-002 | Mixed sensor schemas across codebase. (Legacy-key consumers vs baseline keys). | Workbook `Sensor_Readings` column headers versus current code sensor key names. | Open: contract migration required. |
 | OTD-003 | Sensor meaning and calibration differ. Runtime datasets differ from root tracker values. | Original tracker inspection, repository comparison. | Open: align runtime datasets without overriding the original tracker. |
-| OTD-006 | LSTM runtime model/API feature mismatch (configuration conflict between docs and tracker). | Original docs vs original workbook `AI_Model_Specs`. | Resolved: Configuration resolved; API wiring remains pending under OTD-016. |
+| OTD-006 | LSTM runtime model/API feature mismatch (configuration conflict between docs and tracker). | Original docs vs original workbook `AI_Model_Specs`. | Resolved: Configuration resolved; unapproved API wiring attempt reverted (OTD-017). Safe API wiring remains pending. |
 | OTD-009 | Unity What-If API contract mismatch: two What-If paths do not produce the same showcase result. | Local execution comparison. | Resolved: calibrated demo route now accepts Unity `deferral_days` payload. See OTD-014. |
 | OTD-010 | Scheduler currently marks all 50 assets critical, rather than identifying three high-risk assets. | Local execution of `scheduler/test_scheduler.py`. | Partial: demo risk profile aligned (commit `e5b0e0ac`, 2026-05-29). 3 critical, 90-day window, top-five work orders. Dataset limitation documented. Full production validation pending. |
 | OTD-011 | Failure mode taxonomy conflict: docs imply limited Weibull fits, root workbook contains 14 failure modes. | Root workbook vs documentation. | Open: owner confirmation required. |
 | OTD-012 | WP-07 cost policy conflict: tracker/runtime/demo values differ, though demo narrative requires USD 180,000 and USD 122,400. | Tracker, runtime code, and demo narrative comparison. | Open: owner confirmation required on consistent cost policy. |
 
 ## Approved Decisions
+
+### OTD-017: Revert Of Unapproved LSTM API Wiring
+
+- Date: 2026-05-29
+- Classification: Supporting implementation
+- Decision: Commit `cb6c0c9b` ("wire tracker lstm inference behind explicit sequence") was reverted by commit `b5e2d5f1` because the LSTM API wiring was not approved before it was implemented and pushed. The active approved position is: (1) the tracker-aligned 720×8 LSTM candidate artifact is accepted and documented under OTD-016; (2) API wiring of the new model remains pending and requires explicit approval; (3) the existing fallback behaviour remains active; (4) Platt calibration is baseline-required but implementation decisions remain unresolved. No production readiness is claimed. No calibrated Monte Carlo integration with the new LSTM output exists.
+- Baseline impact: No baseline revision. Restores the branch to the last approved state (safe documentation only). The unapproved commit is preserved on local branch `backup/unapproved-lstm-wiring-cb6c0c9b` for future reference.
+- Evidence: `git revert cb6c0c9b` executed cleanly; revert commit `b5e2d5f1` pushed to `origin/feat/event-hardening` on 2026-05-29.
+- Approved by: Project owner (directed the revert)
+- Affected files/components: `api/routers/predict.py` (restored to pre-wiring state), `api/tests/test_predict_tracker_contract.py` (removed; was introduced by the unapproved commit).
 
 ### OTD-016: Tracker-Aligned LSTM Candidate Artifact Accepted
 
