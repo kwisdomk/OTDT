@@ -12,12 +12,9 @@ silently redefine it.
 The following three original artifacts are the mandatory controlling definition
 of what OTDT was intended to become and how it must work:
 
-1. `Q:\ibm\EAAAIW @ IBM Research Lab Africa\AGENTIC AI Projects\OT_Digital_Twin_Build_Guide.docx`
-2. `Q:\ibm\EAAAIW @ IBM Research Lab Africa\AGENTIC AI Projects\OT_Digital_Twin_Build_Guide- pdf.pdf`
-3. `Q:\ibm\EAAAIW @ IBM Research Lab Africa\AGENTIC AI Projects\OT_Digital_Twin_MVP_Tracker.xlsx`
-
-The repository copy at `docs/architecture/OT_Digital_Twin_Build_Guide.docx`
-is byte-identical to the authoritative DOCX as checked on 2026-05-26.
+1. `OT_Digital_Twin_Build_Guide.docx`
+2. `OT_Digital_Twin_Build_Deck.pptx`
+3. `OT_Digital_Twin_MVP_Tracker.xlsx`
 
 These three sources must be followed for product intent, data usage, model
 workflow, original MVP requirements and demo facts. Where they conflict with
@@ -117,15 +114,15 @@ The intended showcase story is fixed unless the owner approves a revision:
 
 ## Known Baseline Ambiguity
 
-The original build guide and tracker materials disagree with the physical size
-of `Sensor_Readings`:
+The baseline materials contain the following known ambiguities that must be preserved until clarified by the project owner:
 
-- The original PDF and workbook descriptive labels state 43,800 records.
-- Reading the workbook on 2026-05-26 found 87,600 data rows in the
-  `Sensor_Readings` worksheet.
+- **Sensor_Readings row-count conflict:** Documentation mentions 43,800 rows (five years), while the root workbook physically contains 87,600 rows for one year across 10 assets.
+- **Failure mode conflict:** Documentation implies limited Weibull fits, whereas the root workbook contains 14 failure modes.
+- **Runtime datasets differ:** Current runtime datasets differ from the root tracker values.
+- **WP-07 cost conflict:** Tracker, runtime, and demo values differ, but the official demo narrative explicitly requires USD 180,000 and USD 122,400.
 
 Do not quietly choose one figure in client-facing materials or model-validation
-claims. Treat this as an unresolved baseline inconsistency until the project
+claims. Treat these as unresolved baseline inconsistencies until the project
 owner confirms the intended dataset interpretation.
 
 ## Implementation Versus Baseline
@@ -156,6 +153,33 @@ This pause does not remove IBM platform elements from the original baseline.
 Local code recovery must preserve the future integration boundaries, must not
 claim live IBM execution, and must not execute a draft retraining notebook or
 present it as the original March model history while the hold remains active.
+
+## Timeline Interpretation
+
+The three controlling documents contain dates, sprint timing, and a delivery
+calendar that reflected original planning assumptions. Because OTDT has already
+been built faster than that original timeline, those schedule artifacts are
+treated as planning context, not as hard enforcement constraints. They remain
+useful for understanding intended sequencing and scope phasing, but they do not
+block or gate current work.
+
+Product behaviour requirements remain hard requirements regardless of timeline
+status. Specifically, the following are not relaxed by timeline reinterpretation:
+
+- **90-day maintenance schedule** — a required product feature, not a calendar
+  milestone.
+- **WP-07 demo values** — 34% / 68% / USD 180,000 / USD 122,400 / USD 8,000
+  remain locked demo facts.
+- **Five-agent scope** — all five baseline agents remain required.
+- **Unity XR plus Three.js demo experience** — the visual delivery requirement
+  is unchanged.
+- **Top-five Maximo work-order story** — remains part of the demo narrative.
+- **Acceptance targets** — original MVP metric targets (AUC-ROC, Monte Carlo
+  speed, What-If latency, anomaly accuracy, 3D update latency) remain required
+  unless explicitly revised by a project-owner decision recorded in
+  `docs/Decision Log.md`.
+
+This interpretation was recorded under OTD-015 in the Decision Log.
 
 ## Non-Authoritative Material
 

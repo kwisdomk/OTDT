@@ -1,0 +1,6 @@
+# Test dependencies for the OTDT API.
+# Install into the API venv:
+#   api\venv\Scripts\pip.exe install -r api\requirements-dev.txt
+pytest
+pytest-asyncio
+httpx

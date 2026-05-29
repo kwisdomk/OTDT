@@ -21,14 +21,47 @@ open issue remains open and must not be presented as a settled product fact.
 
 | ID | Issue | Baseline evidence | Status |
 | --- | --- | --- | --- |
-| OTD-001 | `Sensor_Readings` size is described as 43,800 records, while the source workbook contains 87,600 data rows. | Original PDF guide and workbook labels versus physical workbook row count checked on 2026-05-26. | Open: owner confirmation required before client-facing use. |
-| OTD-002 | Mixed sensor schemas across codebase. The baseline workbook `Sensor_Readings` sheet uses columns `temperature_c`, `pressure_bar`, `vibration_mm_s`, `flow_rate_kg_s`, `rotation_rpm`, `health_score`, `failure_label`, `failure_event`. Verified legacy-key consumers include `sensor_simulator/config.py`, `sensor_simulator/simulator.py`, `sensor_simulator/kafka_publisher.py`, `api/routers/agent.py`, and `api/routers/predict.py`, which use turbine/bearing-specific names such as `bearing_temp_c`, `bearing_vibration_mms`, `steam_inlet_pressure_bar`, `turbine_rpm`, and `steam_flow_kgs`. In contrast, `api/routers/twin.py` already uses baseline-style sensor keys. | Workbook `Sensor_Readings` column headers versus current code sensor key names, inspected 2026-05-26. | Open: contract migration required before claiming full sensor-schema baseline alignment. Do not resolve by editing code without a coordinated migration plan. |
-| OTD-003 | Sensor meaning and calibration are not aligned across current runtime code. The authoritative original tracker supplies separate datasets for different stages: `GDC_Assets` includes all 50 assets and WP-007; `Sensor_Readings` is the LSTM historical training sample and does not contain WP-007 readings; `Failure_History` includes all 50 assets and 11 WP-007 events; `MC_Validation` includes 7 WP-007 cases. The repository also contains a locally generated sensor workbook and runtime mock/calibration values that must not override the original tracker. | Original tracker inspection, repository comparison, March git history, and project-owner clarification on 2026-05-26. | Open engineering issue: align runtime schemas and calibrations to the authoritative workflow without treating the WP-007 demo or original historical data as erroneous. |
-| OTD-006 | The original build guide and companion tracker specify different LSTM configurations. PDF Step 4 requires 7-day and 30-day rolling statistics per sensor, rate of change, cross-sensor correlations, equipment age, maintenance-event flag and a 20% holdout evaluation. The tracker `AI_Model_Specs` tab specifies a `720 x 8` input feature model (`temperature_c`, `pressure_bar`, `vibration_mm_s`, `flow_rate_kg_s`, `rotation_rpm`, `health_score`, `rolling_7d_temp_mean`, `rate_of_change_vibration`), failure weight x8, 100 epochs with patience 10, and 70/15/15 time split. | Original PDF pages 8 and 15-17 versus original workbook `AI_Model_Specs`, inspected 2026-05-26. | Open: project owner must select the controlling LSTM run specification, or approve running both as separately labelled source-faithful experiments. Do not present an unapproved hybrid notebook as baseline-compliant. |
-| OTD-009 | The two runnable What-If paths do not produce the same original showcase result. `api/routers/monte_carlo.py` retains an explicit demo calibration of 34% at zero deferral and 68% at 45 days, while `api/routers/whatif.py` delegates to the Weibull engine and returned approximately 56% at 45 days during local verification. | Local execution on 2026-05-26: calibrated route produced 68% / USD 122,400 for 45 days; engine-backed route produced approximately 56% / USD 100,818 in that run. | Open: keep the demonstrated calibrated route for the original showcase; do not claim the separate engine-backed path is baseline-calibrated until model/simulation reconciliation is approved. |
-| OTD-010 | The current scheduler validation does not reproduce the original priority-work-order story. After correcting its stale project path, the script executed against the repository asset dataset and scheduled all 50 assets as critical, rather than identifying three high-risk assets outside the calendar plan. | Local execution of `scheduler/test_scheduler.py` on 2026-05-26 after path repair. | Open: scheduler/calibration validation is required before presenting prioritisation output as aligned with the original showcase. |
+| OTD-001 | Sensor_Readings row count / date-range conflict: described as 43,800 records / five years, but the root workbook contains 87,600 rows for one year. | Root workbook physical row count vs. documentation labels. | Open: owner confirmation required. |
+| OTD-002 | Mixed sensor schemas across codebase. (Legacy-key consumers vs baseline keys). | Workbook `Sensor_Readings` column headers versus current code sensor key names. | Open: contract migration required. |
+| OTD-003 | Sensor meaning and calibration differ. Runtime datasets differ from root tracker values. | Original tracker inspection, repository comparison. | Open: align runtime datasets without overriding the original tracker. |
+| OTD-006 | LSTM runtime model/API feature mismatch (configuration conflict between docs and tracker). | Original docs vs original workbook `AI_Model_Specs`. | Open: project owner must select the controlling LSTM run specification. |
+| OTD-009 | Unity What-If API contract mismatch: two What-If paths do not produce the same showcase result. | Local execution comparison. | Resolved: calibrated demo route now accepts Unity `deferral_days` payload. See OTD-014. |
+| OTD-010 | Scheduler currently marks all 50 assets critical, rather than identifying three high-risk assets. | Local execution of `scheduler/test_scheduler.py`. | Open: scheduler validation is required. |
+| OTD-011 | Failure mode taxonomy conflict: docs imply limited Weibull fits, root workbook contains 14 failure modes. | Root workbook vs documentation. | Open: owner confirmation required. |
+| OTD-012 | WP-07 cost policy conflict: tracker/runtime/demo values differ, though demo narrative requires USD 180,000 and USD 122,400. | Tracker, runtime code, and demo narrative comparison. | Open: owner confirmation required on consistent cost policy. |
 
 ## Approved Decisions
+
+### OTD-015: Timeline Dates Are Planning Context; Product Requirements Are Hard
+
+- Date: 2026-05-29
+- Classification: Baseline interpretation
+- Decision: The dates, sprint timing, and original delivery calendar in the three controlling documents are treated as planning context, not as hard enforcement constraints, because OTDT has already been built faster than the original timeline. Product behaviour requirements remain hard requirements: the 90-day maintenance schedule (a product feature), WP-07 demo values, five-agent scope, Unity XR plus Three.js demo experience, top-five Maximo work-order story, and all acceptance targets are not relaxed by this timeline reinterpretation. Acceptance targets may only be revised by an explicit project-owner decision recorded in this log.
+- Baseline impact: No baseline revision. This clarifies interpretation of schedule artifacts without changing any product requirement, demo value, agent scope, or acceptance target.
+- Evidence: Project-owner instruction on 2026-05-29; OTDT delivery progress already exceeds original timeline assumptions.
+- Approved by: Project owner
+- Affected files/components: `docs/Product Baseline.md` (new "Timeline Interpretation" section), `docs/Decision Log.md` (this entry), `docs/Implementation Checklist.md` (work log entry).
+
+### OTD-014: Unity What-If API Contract Fixed
+
+- Date: 2026-05-29
+- Classification: Baseline implementation
+- Decision: The calibrated What-If demo route (`POST /api/monte-carlo/whatif`) now accepts both the Unity payload shape (`{ asset_id, deferral_days }`) and the existing date shape (`{ asset_id, maintenance_date }`). This resolves the contract mismatch that prevented Unity's `WhatIfSlider.cs` from reliably producing baseline demo values.
+- Baseline impact: No baseline revision. The calibrated demo behaviour is preserved: `deferral_days=0` returns 34%, `deferral_days=45` returns 68% / USD 122,400. The stochastic engine-backed route at `/whatif/simulate` is unchanged and remains a separate path.
+- Evidence: Function-level verification (18/18 checks passed) and HTTP-boundary ASGI transport verification (22/22 checks passed) on 2026-05-29. Unity `WhatIfSlider.cs` sends `{ asset_id, deferral_days }` which now matches the API contract.
+- Approved by: Project owner (requested in Step 1/Step 2 task instructions)
+- Affected files/components: `api/routers/monte_carlo.py`, `api/tests/test_whatif_contract.py` (new), `api/tests/verify_whatif.py` (new), `api/tests/verify_whatif_http.py` (new).
+- Remaining scope: Unity Editor play-mode verification is still pending. The stochastic engine route (`/whatif/simulate`) still returns ~56% at 45 days and is not aligned with the calibrated demo — this remains open under OTD-009's original scope note.
+
+### OTD-013: Root Baseline Artifact Set Confirmed
+
+- Date: 2026-05-28
+- Classification: Baseline interpretation
+- Decision: The root DOCX, PPTX, and XLSX control OTDT delivery. Older generated docs are historical/supporting.
+- Baseline impact: Establishes `OT_Digital_Twin_Build_Guide.docx`, `OT_Digital_Twin_Build_Deck.pptx`, and `OT_Digital_Twin_MVP_Tracker.xlsx` as the active source of truth.
+- Evidence: Project owner instruction on 2026-05-28.
+- Approved by: Project owner
+- Affected files/components: All documentation, repository governance.
 
 ### OTD-008: IBM Integration And Cloud Training Work Paused
 

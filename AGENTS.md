@@ -8,19 +8,40 @@ documentation, read `docs/Product Baseline.md`, `docs/Decision Log.md` and
 
 ## Source Of Truth
 
-The three original March 2026 files listed in `docs/Product Baseline.md` are
-the mandatory controlling authority for intended product scope, data usage,
-model workflow and demo facts. Later documents, generated reports, existing
-README prose, and current code are not allowed to redefine the product
+The active source of truth is exclusively the following three root files:
+1. `OT_Digital_Twin_Build_Guide.docx`
+2. `OT_Digital_Twin_Build_Deck.pptx`
+3. `OT_Digital_Twin_MVP_Tracker.xlsx`
+
+These files are the mandatory controlling authority for intended product scope,
+data usage, model workflow and demo facts. Later documents, generated reports,
+existing README prose, and current code are not allowed to redefine the product
 silently. If the three controlling files conflict with each other, record the
 conflict and obtain project-owner direction before implementing a chosen
 interpretation.
 
 ## Working Rules
 
-- Preserve the baseline identity: GDC Kenya geothermal MVP, 50 modelled assets,
-  demo asset `GDC-WP-007`, five baseline agents, synthetic MVP data, and the
-  official WP-07/What-If/ROI scenario.
+- The product goal is the GDC Kenya OT Digital Twin MVP.
+- Required agents are:
+  - LSTM Failure Predictor
+  - Monte Carlo Simulation Engine
+  - Maintenance Scheduler
+  - CNN Anomaly AI, with rule-based fallback allowed for MVP
+  - What-If Analyst
+- Primary demo flow is:
+  - 50 GDC assets
+  - Unity XR plus Three.js visualization
+  - WP-07 / GDC-WP-007 demo asset
+  - 34% 30-day failure probability
+  - 45-day maintenance deferral
+  - 68% deferred failure probability
+  - USD 180,000 replacement/failure cost
+  - USD 122,400 expected failure cost
+  - USD 8,000 inspection cost
+  - 90-day maintenance schedule
+  - top-five Maximo work orders
+  - 650% annual ROI story
 - Do not present implemented, tested, deployed, or production-ready status
   without verifying it from the current repository or environment.
 - Treat additional infrastructure and UI components as implementation choices
