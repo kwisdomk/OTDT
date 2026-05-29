@@ -26,7 +26,7 @@ open issue remains open and must not be presented as a settled product fact.
 | OTD-003 | Sensor meaning and calibration differ. Runtime datasets differ from root tracker values. | Original tracker inspection, repository comparison. | Open: align runtime datasets without overriding the original tracker. |
 | OTD-006 | LSTM runtime model/API feature mismatch (configuration conflict between docs and tracker). | Original docs vs original workbook `AI_Model_Specs`. | Open: project owner must select the controlling LSTM run specification. |
 | OTD-009 | Unity What-If API contract mismatch: two What-If paths do not produce the same showcase result. | Local execution comparison. | Resolved: calibrated demo route now accepts Unity `deferral_days` payload. See OTD-014. |
-| OTD-010 | Scheduler currently marks all 50 assets critical, rather than identifying three high-risk assets. | Local execution of `scheduler/test_scheduler.py`. | Open: scheduler validation is required. |
+| OTD-010 | Scheduler currently marks all 50 assets critical, rather than identifying three high-risk assets. | Local execution of `scheduler/test_scheduler.py`. | Partial: demo risk profile aligned (commit `e5b0e0ac`, 2026-05-29). 3 critical, 90-day window, top-five work orders. Dataset limitation documented. Full production validation pending. |
 | OTD-011 | Failure mode taxonomy conflict: docs imply limited Weibull fits, root workbook contains 14 failure modes. | Root workbook vs documentation. | Open: owner confirmation required. |
 | OTD-012 | WP-07 cost policy conflict: tracker/runtime/demo values differ, though demo narrative requires USD 180,000 and USD 122,400. | Tracker, runtime code, and demo narrative comparison. | Open: owner confirmation required on consistent cost policy. |
 
@@ -51,7 +51,7 @@ open issue remains open and must not be presented as a settled product fact.
 - Evidence: Function-level verification (18/18 checks passed) and HTTP-boundary ASGI transport verification (22/22 checks passed) on 2026-05-29. Unity `WhatIfSlider.cs` sends `{ asset_id, deferral_days }` which now matches the API contract.
 - Approved by: Project owner (requested in Step 1/Step 2 task instructions)
 - Affected files/components: `api/routers/monte_carlo.py`, `api/tests/test_whatif_contract.py` (new), `api/tests/verify_whatif.py` (new), `api/tests/verify_whatif_http.py` (new).
-- Remaining scope: Unity Editor play-mode verification is still pending. The stochastic engine route (`/whatif/simulate`) still returns ~56% at 45 days and is not aligned with the calibrated demo — this remains open under OTD-009's original scope note.
+- Remaining scope: Unity Editor play-mode What-If slider verified on 2026-05-29 (0d=34%, 45d=68%/$122,400, 112d=83.9%/$150,984). The stochastic engine route (`/whatif/simulate`) still returns ~56% at 45 days and is not aligned with the calibrated demo — this remains open under OTD-009's original scope note.
 
 ### OTD-013: Root Baseline Artifact Set Confirmed
 

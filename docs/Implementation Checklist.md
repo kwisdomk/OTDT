@@ -21,10 +21,10 @@ original OTDT plan.
 | WP-07 demo values: 34% -> 68% -> USD 122,400 | Done | 2026-05-26 | Verified on calibrated local demo route |
 | Unity stream sensor field repair | Done | 2026-05-26 | Baseline sensor keys restored in fallback stream |
 | React support UI | Partial | 2026-05-26 | Tests/build pass; supporting UI only, not original Three.js viewer |
-| Unity experience | Partial | 2026-05-26 | Scripts/project exist; running visual verification still needed |
+| Unity experience | Partial | 2026-05-29 | Short demo path verified manually; full production readiness not claimed |
 | LSTM model | Partial | 2026-05-26 | March model artifacts exist; accepted metric/spec validation pending |
 | Monte Carlo engine | Partial | 2026-05-29 | Code exists; calibrated demo route accepts Unity `deferral_days` payload; engine-backed What-If still differs |
-| Scheduler | Blocked | 2026-05-26 | Runs, but currently flags all 50 assets as critical |
+| Scheduler | Partial | 2026-05-29 | Demo risk profile aligned: 3 critical, 90-day window, top-five work orders; data limitation documented |
 | IBM integrations and cloud training | Paused | 2026-05-26 | Resume only when project owner says so |
 | GitHub push of current recovery commit | Pending | 2026-05-26 | Local branch ahead by commit `bc785dfd` |
 
@@ -32,7 +32,7 @@ original OTDT plan.
 
 | Task | Status | Date checked | Notes |
 | --- | --- | --- | --- |
-| Unity project available locally | Partial | 2026-05-26 | Project/scripts found; open-and-run check pending |
+| Unity project available locally | Done | 2026-05-29 | Scene opens; assets render; short demo path verified |
 | Python environment runs local API/demo checks | Done | 2026-05-26 | Compile/demo assertions passed |
 | Docker Compose configuration parses | Done | 2026-05-26 | `docker compose config --quiet` passed |
 | Three.js browser viewer tooling/project exists | Pending | 2026-05-26 | Original requirement; no verified implementation |
@@ -65,9 +65,9 @@ Synthetic Sensor_Readings -> Watson IoT / Kafka -> Maximo Monitor
 | --- | --- | --- | --- |
 | Unity scripts/project present | Partial | 2026-05-26 | Sensor bridge, HUD, colour, camera, asset selector and What-If scripts found |
 | Fallback stream uses Unity sensor keys | Done | 2026-05-26 | `temperature_c`, `pressure_bar`, `vibration_mm_s`, `flow_rate_kg_s`, `rotation_rpm` |
-| Run Unity scene and confirm sensors update visually | Pending |  |  |
-| Confirm all 50 assets map/select correctly in Unity | Pending |  |  |
-| Confirm green/amber/red asset colour changes | Pending |  |  |
+| Run Unity scene and confirm sensors update visually | Partial | 2026-05-29 | Short demo: assets render, WP-07 selectable showing CAUTION, GDC-WP-011 showed normal (8%); full 50-asset visual sweep not performed |
+| Confirm all 50 assets map/select correctly in Unity | Pending |  | Short demo verified WP-07 and WP-011 selection; full 50-asset click-through not performed |
+| Confirm green/amber/red asset colour changes | Partial | 2026-05-29 | WP-07 displayed CAUTION state; green/normal observed on other assets; systematic colour test not performed |
 | Confirm sensor overlay and trend display in Unity | Pending |  |  |
 | Implement/verify required Three.js browser viewer | Pending |  | Original browser visualisation requirement |
 | React dashboard support view | Partial | 2026-05-26 | Compiles and tests pass; do not treat as Three.js completion |
@@ -106,9 +106,9 @@ Synthetic Sensor_Readings -> Watson IoT / Kafka -> Maximo Monitor
 | What-If HTTP verification passed | Done | 2026-05-29 | Manual ASGI-transport verification (22/22 checks); temporary scripts removed after pytest suite added |
 | What-If automated pytest suite | Pending | 2026-05-29 | `api/tests/test_whatif_contract.py` (6 tests); requires `pip install -r api/requirements-dev.txt` in API venv |
 | Unity What-If script exists for WP-07 | Partial | 2026-05-26 | `WhatIfSlider.cs` present; sends `{ asset_id, deferral_days }` matching API contract |
-| Verify slider renders from 0 to 180 days in Unity | Pending |  | Requires Unity Editor play-mode |
-| Verify UI changes 34% to 68% at 45 days | Partial | 2026-05-29 | API value verified via HTTP; Unity display not rerun |
-| Verify USD cost overlay in Unity | Pending |  |  |
+| Verify slider renders from 0 to 180 days in Unity | Partial | 2026-05-29 | Slider tested at 0, 45, and 112 days; full 0–180 sweep not performed |
+| Verify UI changes 34% to 68% at 45 days | Done | 2026-05-29 | Unity slider at 0 days: 34.0% / $61,200; at 45 days: 68.0% / $122,400; at 112 days: 83.9% / $150,984 |
+| Verify USD cost overlay in Unity | Done | 2026-05-29 | Displayed $61,200 at 0 days, $122,400 at 45 days, $150,984 at 112 days |
 | Verify response time under 2 seconds | Pending |  | Original target |
 
 ## 7. Anomaly AI
@@ -127,10 +127,10 @@ Synthetic Sensor_Readings -> Watson IoT / Kafka -> Maximo Monitor
 | --- | --- | --- | --- |
 | Scheduler code exists | Partial | 2026-05-26 | `scheduler/optimizer.py` and Gantt code found |
 | Scheduler test runs from correct repo path | Done | 2026-05-26 | Path repaired and script executed |
-| Generate acceptable 90-day schedule | Blocked | 2026-05-26 | Current run marked all 50 assets critical |
+| Generate acceptable 90-day schedule | Partial | 2026-05-29 | 90-day window, 3 critical, 33 scheduled, 17 skipped; data limitation documented |
 | Show Gantt schedule in Unity | Pending |  | Original requirement |
 | Create priority Maximo work orders | Paused | 2026-05-26 | IBM work held |
-| Reproduce showcase: identify three out-of-plan high-risk assets | Blocked | 2026-05-26 | Current calibration does not do this |
+| Reproduce showcase: identify three out-of-plan high-risk assets | Partial | 2026-05-29 | GDC-WP-007 (34%), GDC-TU-001 (36%), GDC-TU-010 (32%); dataset does not provide three clean assets due outside the 90-day window |
 
 ## 9. Demo And Delivery
 
@@ -139,8 +139,8 @@ Synthetic Sensor_Readings -> Watson IoT / Kafka -> Maximo Monitor
 | March showcase was presented/run | Done | March 2026 | Owner-reported; exact run time not recorded |
 | Current local Scenario 1 value: WP-07 at 34% | Done | 2026-05-26 | Verified in local demo path |
 | Current local Scenario 2 calculation: 45 days -> 68% / USD 122,400 | Done | 2026-05-26 | Verified in local demo path |
-| Scenario 2 verified in running Unity display | Pending |  |  |
-| Scenario 3 scheduler story verified | Blocked | 2026-05-26 | Scheduler calibration issue |
+| Scenario 2 verified in running Unity display | Done | 2026-05-29 | Unity slider at 0 days: 34.0%; at 45 days: 68.0% / $122,400; short demo path |
+| Scenario 3 scheduler story verified | Partial | 2026-05-29 | Demo risk profile aligned; full production scheduler not validated |
 | Annual ROI statement retained: USD 360,000 vs USD 48,000 = 650% | Partial | 2026-05-26 | Baseline preserved; runnable display evidence pending |
 | Push recovery commit to GitHub | Pending | 2026-05-26 | Commit `bc785dfd` exists locally |
 
@@ -148,6 +148,8 @@ Synthetic Sensor_Readings -> Watson IoT / Kafka -> Maximo Monitor
 
 | Date / time (EAT) | Work | Result |
 | --- | --- | --- |
+| 2026-05-29 14:30 | Unity short demo verification | Scene runs, assets render, WP-07 selectable (CAUTION), What-If slider: 0d=34%/$61,200, 45d=68%/$122,400, 112d=83.9%/$150,984; GDC-WP-011 normal at 8%; short demo path verified, not full production readiness |
+| 2026-05-29 14:00 | Scheduler alignment commit `e5b0e0ac` pushed | 3 critical, 90-day window, top-five work orders; dataset limitation documented |
 | 2026-05-29 10:55 | Timeline interpretation governance (OTD-015) | Baseline, Decision Log, and Checklist updated: timeline dates are planning context; product behaviour requirements remain hard |
 | 2026-05-29 10:50 | What-If test hygiene (Step 2.1) | Created `api/requirements-dev.txt` (pytest, pytest-asyncio, httpx); added `api/tests/__init__.py`; removed temporary `verify_whatif.py` and `verify_whatif_http.py`; pytest pending dependency install |
 | 2026-05-29 09:50 | What-If API contract fix (OTD-014) | `deferral_days` accepted; 18/18 function + 22/22 HTTP checks passed; docs updated |

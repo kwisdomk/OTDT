@@ -153,3 +153,10 @@ verify.py optional -> start FastAPI -> open Unity -> press Play
 ```
 
 It is valid for visual demonstration, but it is not a full engineering validation of OTDT.
+
+## Verification Record
+
+| Date | Verified by | Result |
+| --- | --- | --- |
+| 2026-05-29 | Manual (project team) | Pass: scene runs, assets render, WP-07 selectable (CAUTION state), GDC-WP-011 normal (8%). What-If slider: 0d=34.0%/$61,200, 45d=68.0%/$122,400, 112d=83.9%/$150,984. Short demo path verified. Not a full production readiness validation. |
+
