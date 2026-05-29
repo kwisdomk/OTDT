@@ -16,7 +16,7 @@ original OTDT plan.
 | Area | Status | Last checked | Notes |
 | --- | --- | --- | --- |
 | Step 0 / baseline lock | Done | 2026-05-28 | Baseline artifacts confirmed and repository governance updated |
-| Documentation index created | Done | 2026-05-28 | `DOCUMENTATION_INDEX.md` established |
+| Documentation index created | Done | 2026-05-28 | `docs/Documentation Index.md` established |
 | Original baseline protected in repo | Done | 2026-05-28 | `Product Baseline.md`, `Decision Log.md`, `AGENTS.md` updated |
 | WP-07 demo values: 34% -> 68% -> USD 122,400 | Done | 2026-05-26 | Verified on calibrated local demo route |
 | Unity stream sensor field repair | Done | 2026-05-26 | Baseline sensor keys restored in fallback stream |

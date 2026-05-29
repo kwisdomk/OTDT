@@ -20,11 +20,18 @@ These files enforce the baseline and track implementation progress:
 - `docs/Product Baseline.md`: Defines the authoritative product intent.
 - `docs/Decision Log.md`: Records approved decisions, extensions, or revisions to the baseline.
 - `docs/Implementation Checklist.md`: Tracks implementation progress against the baseline.
+- `docs/Documentation Index.md`: Classifies active, operational, project-management, and historical documentation.
 
 ## Project Management / Status Reports
 
 - `docs/project_management/OTDT_Current_State_Assessment_2026-05-27.docx`
 - `docs/project_management/OTDT_Baseline_Aligned_Delivery_Workplan_2026-05-27.docx`
+
+## Operational Runbooks
+
+These files explain how to run the current system locally. They are operational guidance, not product authority:
+- `docs/runbooks/Short Unity Demo Runbook.md`: Fast local Unity visual demo path.
+- `docs/runbooks/Long Engineering Smoke Test Runbook.md`: Broader current-state smoke test path.
 
 ## Historical / Supporting Material
 
