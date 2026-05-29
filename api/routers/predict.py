@@ -7,16 +7,15 @@ GET  /predict/model/info         → current model source and Watson ML status
 
 Priority chain (teammate-approved strategy):
   1. Watson ML REST endpoint  (if WATSON_ML_URL env var is set + reachable)
-  2. Local tracker model      (only when a 720x8 sensor_sequence is supplied)
-  3. Local .h5 model file     (ml/lstm/models/lstm_failure.h5)
-  4. Synthetic fallback       (deterministic score, unblocks dev while training runs)
+  2. Local .h5 model file     (ml/lstm/models/lstm_failure.h5)
+  3. Synthetic fallback        (deterministic score, unblocks dev while training runs)
 
-⚠️  SYNTHETIC DATA: Predictions are based on synthetic tracker/demo data.
+⚠️  SYNTHETIC DATA: Predictions are computer-generated until Step 4 (LSTM training) completes.
 """
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
 import os
 import math
@@ -33,21 +32,9 @@ _LOCAL_H5_PATH = os.path.join(
     os.path.dirname(__file__), "..", "..", "ml", "lstm", "models", "lstm_failure.h5"
 )
 
-_TRACKER_DIR = os.path.join(
-    os.path.dirname(__file__), "..", "..", "ml", "lstm", "models", "tracker_720x8"
-)
-_TRACKER_MODEL_PATH = os.path.join(_TRACKER_DIR, "lstm_tracker_720x8.keras")
-_TRACKER_SCALER_PATH = os.path.join(_TRACKER_DIR, "lstm_tracker_720x8_scaler_fitted.pkl")
-_TRACKER_META_PATH = os.path.join(_TRACKER_DIR, "lstm_tracker_720x8_metadata.json")
-
-
 # ── Model loader ───────────────────────────────────────────────────────────
 _LSTM_MODEL    = None
 _MODEL_SOURCE  = "synthetic"
-
-_TRACKER_MODEL = None
-_TRACKER_SCALER = None
-_TRACKER_META = None
 
 try:
     if os.path.exists(_LOCAL_H5_PATH):
@@ -60,26 +47,6 @@ try:
         print("[LSTM] No local .h5 found — will try Watson ML or synthetic fallback")
 except Exception as _e:
     print(f"[LSTM] Local model load failed ({_e}) — Watson ML / synthetic fallback active")
-
-try:
-    if os.path.exists(_TRACKER_META_PATH):
-        import json
-        with open(_TRACKER_META_PATH, "r") as f:
-            _TRACKER_META = json.load(f)
-        print(f"[LSTM] Loaded tracker metadata from {_TRACKER_META_PATH}")
-except Exception as _e:
-    print(f"[LSTM] Tracker metadata load failed ({_e})")
-
-try:
-    if os.path.exists(_TRACKER_MODEL_PATH) and os.path.exists(_TRACKER_SCALER_PATH):
-        import tensorflow as tf  # type: ignore
-        import pickle
-        _TRACKER_MODEL = tf.keras.models.load_model(_TRACKER_MODEL_PATH, compile=False)
-        with open(_TRACKER_SCALER_PATH, "rb") as f:
-            _TRACKER_SCALER = pickle.load(f)
-        print(f"[LSTM] Loaded tracker model from {_TRACKER_MODEL_PATH}")
-except Exception as _e:
-    print(f"[LSTM] Tracker model load failed ({_e})")
 
 
 # ── Watson ML token helper ─────────────────────────────────────────────────
@@ -166,27 +133,6 @@ def _predict_local(sensor_state: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         return None
 
 
-def _predict_tracker(seq_arr, sensor_state: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    """Run inference on the local tracker model (720x8 sequence)."""
-    if _TRACKER_MODEL is None or _TRACKER_SCALER is None:
-        return None
-    try:
-        import numpy as np  # type: ignore
-        scaled_seq = _TRACKER_SCALER.transform(seq_arr)
-        x = np.expand_dims(scaled_seq, axis=0)
-        prob = float(_TRACKER_MODEL.predict(x, verbose=0)[0][0])
-        res = _build_result(prob, sensor_state, source="local_tracker_720x8")
-        if _TRACKER_META is not None:
-            res["auc_roc"] = _TRACKER_META.get("test_auc_roc") or _TRACKER_META.get("validation_auc_roc")
-            res["validation_auc_roc"] = _TRACKER_META.get("validation_auc_roc")
-            res["sequence_length"] = _TRACKER_META.get("sequence_length")
-            res["feature_count"] = _TRACKER_META.get("feature_count")
-        return res
-    except Exception as e:
-        print(f"[LSTM] Tracker inference failed: {e}")
-        return None
-
-
 def _predict_synthetic(sensor_state: Dict[str, Any], asset_id: str = "") -> Dict[str, Any]:
     """
     Deterministic synthetic prediction for demo / development.
@@ -255,11 +201,7 @@ class PredictRequest(BaseModel):
     )
     force_source: Optional[str] = Field(
         default=None,
-        description="Override inference priority: 'watson_ml' | 'local_h5' | 'synthetic' | 'local_tracker_720x8'",
-    )
-    sensor_sequence: Optional[List[List[float]]] = Field(
-        default=None,
-        description="Optional 720x8 sequence array for the local tracker LSTM.",
+        description="Override inference priority: 'watson_ml' | 'local_h5' | 'synthetic'",
     )
 
 
@@ -275,39 +217,13 @@ async def predict_failure(request: PredictRequest):
 
     **Inference priority (unless overridden by `force_source`):**
     1. Watson ML REST endpoint (if `WATSON_ML_URL` env var is set)
-    2. Local tracker model (only when `sensor_sequence` is supplied)
-    3. Local `.h5` model (if present at `ml/lstm/models/lstm_failure.h5`)
-    4. Synthetic fallback (always available)
+    2. Local `.h5` model (if present at `ml/lstm/models/lstm_failure.h5`)
+    3. Synthetic fallback (always available)
 
     This matches the teammate-approved demo-resilience strategy — conference
     Wi-Fi drops won't crash the demo.
     """
     force = request.force_source
-
-    if force == "local_tracker_720x8" and request.sensor_sequence is None:
-        raise HTTPException(
-            status_code=422,
-            detail="sensor_sequence is required when force_source is local_tracker_720x8",
-        )
-
-    # --- Tracker Model ---
-    if request.sensor_sequence is not None:
-        import numpy as np  # type: ignore
-        seq_arr = np.array(request.sensor_sequence, dtype="float32")
-        if seq_arr.shape != (720, 8):
-            raise HTTPException(
-                status_code=422,
-                detail=f"sensor_sequence shape must be (720, 8), got {seq_arr.shape}",
-            )
-
-        result = _predict_tracker(seq_arr, request.sensor_state)
-        if result:
-            return result
-        else:
-            raise HTTPException(
-                status_code=500,
-                detail="Tracker model inference failed or artifacts unavailable locally.",
-            )
 
     # --- Watson ML ---
     if force in (None, "watson_ml"):
@@ -358,7 +274,6 @@ async def predict_model_info():
     """Returns the active inference source and Step 4 training status."""
     watson_configured = bool(_WATSON_ML_URL and _WATSON_ML_API_KEY)
     local_available   = os.path.exists(_LOCAL_H5_PATH)
-    tracker_available = _TRACKER_MODEL is not None and _TRACKER_SCALER is not None
 
     active_source = "synthetic"
     if watson_configured:
@@ -366,36 +281,21 @@ async def predict_model_info():
     elif local_available:
         active_source = "local_h5"
 
-    info = {
+    return {
         "active_source":       active_source,
         "watson_ml_configured": watson_configured,
         "watson_ml_url":        _WATSON_ML_URL or None,
         "local_h5_available":   local_available,
         "local_h5_path":        _LOCAL_H5_PATH,
-        "tracker_720x8_available": tracker_available,
-        "tracker_720x8_model_path": _TRACKER_MODEL_PATH,
-        "tracker_720x8_scaler_path": _TRACKER_SCALER_PATH,
-        "tracker_720x8_metadata_path": _TRACKER_META_PATH,
-        "tracker_720x8_metadata_available": _TRACKER_META is not None,
-        "step_4_complete":      local_available or watson_configured or tracker_available,
+        "step_4_complete":      local_available or watson_configured,
         "pending_action": (
-            "Restore the tracker .keras model and fitted scaler locally, or configure Watson ML. "
-            "Tracker inference also requires an explicit 720x8 sensor_sequence payload."
-            if not (local_available or watson_configured or tracker_available) else None
+            "Train ml/lstm/notebooks/01_lstm_training.ipynb in Watson Studio. "
+            "Then either deploy as Watson ML endpoint (set WATSON_ML_URL) "
+            "or export lstm_failure.h5 into ml/lstm/models/."
+            if not (local_available or watson_configured) else None
         ),
         "timestamp": datetime.now().isoformat(),
     }
-
-    if _TRACKER_META is not None:
-        info.update({
-            "tracker_720x8_sequence_length": _TRACKER_META.get("sequence_length"),
-            "tracker_720x8_feature_count": _TRACKER_META.get("feature_count"),
-            "tracker_720x8_feature_names": _TRACKER_META.get("feature_names"),
-            "tracker_720x8_test_auc_roc": _TRACKER_META.get("test_auc_roc"),
-            "tracker_720x8_validation_auc_roc": _TRACKER_META.get("validation_auc_roc"),
-        })
-
-    return info
 
 
 # Made with Bob
