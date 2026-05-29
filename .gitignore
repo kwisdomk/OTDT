@@ -62,9 +62,15 @@ NaN/
 *.h5
 *.hdf5
 *.pkl
+*.keras
 *.joblib
 datasets/*.xlsx
 !datasets/GDC_Assets.xlsx
+
+# ── LSTM training artifacts (credentials / large binaries) ─────────────
+New Otdt Lstm Tracker Training.ipynb
+New Otdt Lstm Tracker Artifacts.zip
+New Otdt Lstm Tracker Artifacts/
 
 # ── Coverage / Testing ────────────────────────────────────────────────
 .coverage

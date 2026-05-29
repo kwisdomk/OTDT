@@ -22,7 +22,7 @@ original OTDT plan.
 | Unity stream sensor field repair | Done | 2026-05-26 | Baseline sensor keys restored in fallback stream |
 | React support UI | Partial | 2026-05-26 | Tests/build pass; supporting UI only, not original Three.js viewer |
 | Unity experience | Partial | 2026-05-29 | Short demo path verified manually; full production readiness not claimed |
-| LSTM model | Partial | 2026-05-26 | March model artifacts exist; accepted metric/spec validation pending |
+| LSTM model | Partial | 2026-05-29 | Tracker-aligned 720x8 model trained and locally evaluated (AUC 0.9857); safe API wiring pending |
 | Monte Carlo engine | Partial | 2026-05-29 | Code exists; calibrated demo route accepts Unity `deferral_days` payload; engine-backed What-If still differs |
 | Scheduler | Partial | 2026-05-29 | Demo risk profile aligned: 3 critical, 90-day window, top-five work orders; data limitation documented |
 | IBM integrations and cloud training | Paused | 2026-05-26 | Resume only when project owner says so |
@@ -78,11 +78,11 @@ Synthetic Sensor_Readings -> Watson IoT / Kafka -> Maximo Monitor
 | --- | --- | --- | --- |
 | Existing March model files located | Partial | 2026-05-26 | `.h5`, scaler and feature config present |
 | Preserve report that model was trained for March presentation | Done | 2026-05-26 | Owner-reported history; not new model validation |
-| Decide approved LSTM configuration | Blocked | 2026-05-26 | PDF and tracker specifications differ |
-| Validate model using original data and approved specification | Pending |  |  |
-| Confirm AUC-ROC > 0.82 | Pending |  | Original target |
-| Confirm calibration curve/output | Pending |  | Original requirement |
-| Confirm SavedModel and ONNX export | Pending |  | Original requirement |
+| Decide approved LSTM configuration | Done | 2026-05-29 | Tracker-aligned 720x8 model accepted as current candidate artifact |
+| Validate model using original data and approved specification | Partial | 2026-05-29 | Tracker-aligned model trained and fitted scaler recreated; API wiring pending |
+| Confirm AUC-ROC > 0.82 | Done | 2026-05-29 | Test AUC-ROC is 0.9857 (with overlapping-window caveat) |
+| Confirm calibration curve/output | Pending |  | Platt calibration still pending |
+| Confirm SavedModel and ONNX export | Pending |  | ONNX/SavedModel still pending |
 | New Watson Studio retraining | Paused | 2026-05-26 | Do not run pending IBM reactivation |
 
 ## 5. Monte Carlo Simulation
@@ -148,6 +148,7 @@ Synthetic Sensor_Readings -> Watson IoT / Kafka -> Maximo Monitor
 
 | Date / time (EAT) | Work | Result |
 | --- | --- | --- |
+| 2026-05-29 21:15 | Prepare and commit safe LSTM readiness documentation | Safe metadata, .gitignore, and model readiness documented and committed under OTD-016 |
 | 2026-05-29 14:30 | Unity short demo verification | Scene runs, assets render, WP-07 selectable (CAUTION), What-If slider: 0d=34%/$61,200, 45d=68%/$122,400, 112d=83.9%/$150,984; GDC-WP-011 normal at 8%; short demo path verified, not full production readiness |
 | 2026-05-29 14:00 | Scheduler alignment commit `e5b0e0ac` pushed | 3 critical, 90-day window, top-five work orders; dataset limitation documented |
 | 2026-05-29 10:55 | Timeline interpretation governance (OTD-015) | Baseline, Decision Log, and Checklist updated: timeline dates are planning context; product behaviour requirements remain hard |

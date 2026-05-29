@@ -24,13 +24,23 @@ open issue remains open and must not be presented as a settled product fact.
 | OTD-001 | Sensor_Readings row count / date-range conflict: described as 43,800 records / five years, but the root workbook contains 87,600 rows for one year. | Root workbook physical row count vs. documentation labels. | Open: owner confirmation required. |
 | OTD-002 | Mixed sensor schemas across codebase. (Legacy-key consumers vs baseline keys). | Workbook `Sensor_Readings` column headers versus current code sensor key names. | Open: contract migration required. |
 | OTD-003 | Sensor meaning and calibration differ. Runtime datasets differ from root tracker values. | Original tracker inspection, repository comparison. | Open: align runtime datasets without overriding the original tracker. |
-| OTD-006 | LSTM runtime model/API feature mismatch (configuration conflict between docs and tracker). | Original docs vs original workbook `AI_Model_Specs`. | Open: project owner must select the controlling LSTM run specification. |
+| OTD-006 | LSTM runtime model/API feature mismatch (configuration conflict between docs and tracker). | Original docs vs original workbook `AI_Model_Specs`. | Resolved: Configuration resolved; API wiring remains pending under OTD-016. |
 | OTD-009 | Unity What-If API contract mismatch: two What-If paths do not produce the same showcase result. | Local execution comparison. | Resolved: calibrated demo route now accepts Unity `deferral_days` payload. See OTD-014. |
 | OTD-010 | Scheduler currently marks all 50 assets critical, rather than identifying three high-risk assets. | Local execution of `scheduler/test_scheduler.py`. | Partial: demo risk profile aligned (commit `e5b0e0ac`, 2026-05-29). 3 critical, 90-day window, top-five work orders. Dataset limitation documented. Full production validation pending. |
 | OTD-011 | Failure mode taxonomy conflict: docs imply limited Weibull fits, root workbook contains 14 failure modes. | Root workbook vs documentation. | Open: owner confirmation required. |
 | OTD-012 | WP-07 cost policy conflict: tracker/runtime/demo values differ, though demo narrative requires USD 180,000 and USD 122,400. | Tracker, runtime code, and demo narrative comparison. | Open: owner confirmation required on consistent cost policy. |
 
 ## Approved Decisions
+
+### OTD-016: Tracker-Aligned LSTM Candidate Artifact Accepted
+
+- Date: 2026-05-29
+- Classification: Supporting implementation
+- Decision: The tracker-aligned 720x8 model is accepted as the current candidate artifact. The fitted scaler has been recreated to support it. The synthetic-data limitation and overlapping-window evaluation caveat are documented. The existing API fallback model remains active until safe wiring of the new 720x8 model is explicitly approved and implemented.
+- Baseline impact: No baseline revision. Resolves the configuration conflict (OTD-006) by selecting the tracker specification.
+- Evidence: Metadata JSON confirms `test_auc_roc: 0.9857` and scaler transformation verified.
+- Approved by: Project owner
+- Affected files/components: `ml/lstm/models/tracker_720x8/`, LSTM checklist items.
 
 ### OTD-015: Timeline Dates Are Planning Context; Product Requirements Are Hard
 

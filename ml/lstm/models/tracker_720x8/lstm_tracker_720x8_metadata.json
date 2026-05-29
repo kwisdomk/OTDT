@@ -1,0 +1,42 @@
+{
+  "created_at_utc": "2026-05-29T17:24:27.492032+00:00",
+  "model_name": "Otdt Lstm Tracker 720x8",
+  "sequence_length": 720,
+  "feature_count": 8,
+  "feature_names": [
+    "temperature_c",
+    "pressure_bar",
+    "vibration_mm_s",
+    "flow_rate_kg_s",
+    "rotation_rpm",
+    "health_score",
+    "rolling_7d_temp_mean",
+    "rate_of_change_vibration"
+  ],
+  "label": "future_failure_30d derived from failure_event within next 720 hourly rows",
+  "source_workbook": "OT_Digital_Twin_MVP_Tracker.xlsx",
+  "source_sheet": "Sensor_Readings",
+  "row_count_clean": 87600,
+  "asset_count": 10,
+  "window_stride_hours": 12,
+  "train_windows": 4697,
+  "validation_windows": 1006,
+  "test_windows": 1007,
+  "train_positive": 169,
+  "validation_positive": 36,
+  "test_positive": 36,
+  "validation_auc_roc": 0.9768327605956472,
+  "test_auc_roc": 0.9857249113170843,
+  "validation_average_precision": 0.5597747716288073,
+  "test_average_precision": 0.6041647205195748,
+  "acceptance_target_auc_roc": 0.82,
+  "acceptance_target_met": true,
+  "split_strategy": "stratified sliding windows, stride 12 hours; synthetic-data MVP evaluation",
+  "known_limitations": [
+    "Synthetic data only",
+    "Sliding windows overlap, so evaluation may be optimistic",
+    "Positive future failure labels derive from sparse failure_event rows",
+    "Not yet wired into local OTDT API",
+    "No ONNX export completed in this first pass"
+  ]
+}
