@@ -26,7 +26,8 @@ original OTDT plan.
 | Monte Carlo engine | Partial | 2026-05-29 | Code exists; calibrated demo route accepts Unity `deferral_days` payload; engine-backed What-If still differs |
 | Scheduler | Partial | 2026-05-29 | Demo risk profile aligned: 3 critical, 90-day window, top-five work orders; data limitation documented |
 | IBM integrations and cloud training | Paused | 2026-05-26 | Resume only when project owner says so |
-| GitHub push of current recovery commit | Pending | 2026-05-26 | Local branch ahead by commit `bc785dfd` |
+| GitHub push of current recovery commit | Done | 2026-05-30 | `feat/event-hardening` is synced with origin at `bfc35b59`; `main` merge remains pending |
+| Legacy tracked model/notebook artifacts | Pending | 2026-05-30 | Four older `.h5`/`.pkl`/`.ipynb` files remain tracked; cleanup is a supporting implementation decision, not a baseline requirement; see OTD-018 |
 
 ## 1. Setup And Tools
 
@@ -142,12 +143,13 @@ Synthetic Sensor_Readings -> Watson IoT / Kafka -> Maximo Monitor
 | Scenario 2 verified in running Unity display | Done | 2026-05-29 | Unity slider at 0 days: 34.0%; at 45 days: 68.0% / $122,400; short demo path |
 | Scenario 3 scheduler story verified | Partial | 2026-05-29 | Demo risk profile aligned; full production scheduler not validated |
 | Annual ROI statement retained: USD 360,000 vs USD 48,000 = 650% | Partial | 2026-05-26 | Baseline preserved; runnable display evidence pending |
-| Push recovery commit to GitHub | Pending | 2026-05-26 | Commit `bc785dfd` exists locally |
+| Push recovery commit to GitHub | Done | 2026-05-30 | `feat/event-hardening` is synced with origin at `bfc35b59`; `main` merge remains pending |
 
 ## Latest Work Log
 
 | Date / time (EAT) | Work | Result |
 | --- | --- | --- |
+| 2026-05-30 05:17 | Read-only state audit against baseline docs | Checklist push status corrected; legacy tracked artifact issue recorded as pending OTD-018; no code cleanup performed |
 | 2026-05-29 22:42 | Revert unapproved LSTM API wiring (OTD-017) | Commit `cb6c0c9b` reverted by `b5e2d5f1`; `api/routers/predict.py` restored, `api/tests/test_predict_tracker_contract.py` removed; backup branch `backup/unapproved-lstm-wiring-cb6c0c9b` created; fallback remains active; revert pushed to origin |
 | 2026-05-29 21:15 | Prepare and commit safe LSTM readiness documentation | Safe metadata, .gitignore, and model readiness documented and committed under OTD-016 |
 | 2026-05-29 14:30 | Unity short demo verification | Scene runs, assets render, WP-07 selectable (CAUTION), What-If slider: 0d=34%/$61,200, 45d=68%/$122,400, 112d=83.9%/$150,984; GDC-WP-011 normal at 8%; short demo path verified, not full production readiness |

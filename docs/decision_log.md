@@ -29,6 +29,7 @@ open issue remains open and must not be presented as a settled product fact.
 | OTD-010 | Scheduler currently marks all 50 assets critical, rather than identifying three high-risk assets. | Local execution of `scheduler/test_scheduler.py`. | Partial: demo risk profile aligned (commit `e5b0e0ac`, 2026-05-29). 3 critical, 90-day window, top-five work orders. Dataset limitation documented. Full production validation pending. |
 | OTD-011 | Failure mode taxonomy conflict: docs imply limited Weibull fits, root workbook contains 14 failure modes. | Root workbook vs documentation. | Open: owner confirmation required. |
 | OTD-012 | WP-07 cost policy conflict: tracker/runtime/demo values differ, though demo narrative requires USD 180,000 and USD 122,400. | Tracker, runtime code, and demo narrative comparison. | Open: owner confirmation required on consistent cost policy. |
+| OTD-018 | Legacy model binary and notebook files remain tracked in git despite current ignore policy. | `git ls-files --cached` on 2026-05-30 shows four older `.h5`/`.pkl`/`.ipynb` files still tracked. The three governing docs do not define git artifact-tracking policy. | Open: supporting implementation cleanup requires owner approval before any `git rm --cached` or `.gitignore` change. |
 
 ## Approved Decisions
 
