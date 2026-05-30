@@ -1,0 +1,33 @@
+{
+  "method": "platt_scaling",
+  "equation": "calibrated_probability = sigmoid(coefficient * raw_score + intercept) where sigmoid(x) = 1 / (1 + exp(-x))",
+  "coefficient": 10.251993580022807,
+  "intercept": -9.395092324563715,
+  "fitted_on_split": "validation",
+  "evaluated_on_split": "test",
+  "raw_score_domain": "probability (0, 1)",
+  "brier_score_raw": 0.028588128645022703,
+  "brier_score_calibrated": 0.01791497830613826,
+  "auc_roc_raw": 0.9745108135942327,
+  "auc_roc_calibrated": 0.9745108135942326,
+  "created_at_utc": "2026-05-30T04:58:54.978144+00:00",
+  "model_metadata_file": "lstm_tracker_720x8_metadata.json",
+  "source_workbook": "OT_Digital_Twin_MVP_Tracker.xlsx",
+  "feature_names": [
+    "temperature_c",
+    "pressure_bar",
+    "vibration_mm_s",
+    "flow_rate_kg_s",
+    "rotation_rpm",
+    "health_score",
+    "rolling_7d_temp_mean",
+    "rate_of_change_vibration"
+  ],
+  "sequence_length": 720,
+  "known_limitations": [
+    "Synthetic data only",
+    "Sliding windows overlap, so evaluation may be optimistic",
+    "Calibration fitted on validation split only, not cross-validated",
+    "Not yet wired into API or Monte Carlo pipeline"
+  ]
+}

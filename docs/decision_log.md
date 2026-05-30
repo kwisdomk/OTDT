@@ -33,6 +33,23 @@ open issue remains open and must not be presented as a settled product fact.
 
 ## Approved Decisions
 
+### OTD-019: Platt Calibration Artifact Policy
+
+- Date: 2026-05-30
+- Classification: Supporting implementation
+- Decision: The following implementation choices for Platt calibration are approved. The three governing documents require Platt calibration (`AI_Model_Specs` in the tracker) but do not specify artifact format, split policy, raw-score domain, or fit strategy:
+  - **Artifact format:** Separate JSON metadata file beside the local tracker model (`lstm_tracker_720x8_calibration.json`).
+  - **Fitting split:** Validation split only (1007 windows, 36 positive).
+  - **Evaluation split:** Test split only (1007 windows, 36 positive).
+  - **Raw-score domain:** Raw model probability output in (0, 1).
+  - **Equation:** `calibrated_probability = sigmoid(coefficient * raw_score + intercept)` where `sigmoid(x) = 1 / (1 + exp(-x))`.
+  - **Fit strategy:** `sklearn.linear_model.LogisticRegression(C=1e10)` on raw model probabilities, with stratified 70/15/15 split (random_state=42) matching the original metadata's documented `stratified sliding windows` strategy.
+  - **First scope:** Artifact generation and pure-function math test only. Runtime wiring (API, Monte Carlo) is not approved in this scope.
+- Baseline impact: No baseline revision. Platt calibration is baseline-required; these choices implement it without changing any product fact, demo value, or agent scope.
+- Evidence: Calibration artifact generated on 2026-05-30. Test-split Brier score improved from 0.0286 (raw) to 0.0179 (calibrated). AUC-ROC 0.9745 (unchanged, as expected from monotonic transform). Coefficient 10.2520, intercept −9.3951.
+- Approved by: Project owner (approved implementation choices and Option A raw-score domain)
+- Affected files/components: `ml/lstm/scripts/create_platt_calibration.py` (new), `ml/lstm/scripts/test_platt_transform.py` (new), `ml/lstm/models/tracker_720x8/lstm_tracker_720x8_calibration.json` (new, git-trackable JSON metadata; model binaries and notebooks remain ignored).
+
 ### OTD-018: Remove Legacy Model And Notebook Artifacts From Git Tracking
 
 - Date: 2026-05-30

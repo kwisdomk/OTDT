@@ -82,7 +82,7 @@ Synthetic Sensor_Readings -> Watson IoT / Kafka -> Maximo Monitor
 | Decide approved LSTM configuration | Done | 2026-05-29 | Tracker-aligned 720x8 model accepted as current candidate artifact |
 | Validate model using original data and approved specification | Partial | 2026-05-29 | Tracker-aligned model trained and fitted scaler recreated; unapproved API wiring reverted (OTD-017); fallback remains active; safe wiring pending approval |
 | Confirm AUC-ROC > 0.82 | Done | 2026-05-29 | Test AUC-ROC is 0.9857 (with overlapping-window caveat) |
-| Confirm calibration curve/output | Pending |  | Platt calibration is baseline-required; implementation decisions unresolved |
+| Confirm calibration curve/output | Partial | 2026-05-30 | Platt calibration artifact generated (OTD-019); Brier improved 0.0286→0.0179; AUC-ROC 0.9745; API wiring and Monte Carlo integration pending |
 | Confirm SavedModel and ONNX export | Pending |  | ONNX/SavedModel still pending |
 | New Watson Studio retraining | Paused | 2026-05-26 | Do not run pending IBM reactivation |
 
@@ -149,6 +149,7 @@ Synthetic Sensor_Readings -> Watson IoT / Kafka -> Maximo Monitor
 
 | Date / time (EAT) | Work | Result |
 | --- | --- | --- |
+| 2026-05-30 10:49 | Platt calibration artifact generation (OTD-019) | Calibration JSON generated; Brier 0.0286→0.0179 (improved); AUC-ROC 0.9745; 9/9 pure-function tests passed; API/Monte Carlo wiring not touched |
 | 2026-05-30 05:55 | OTD-018 legacy artifact tracking cleanup | Four older model/notebook artifacts removed from git tracking only; local copies preserved; `.gitignore` extended for notebooks; no code or baseline change |
 | 2026-05-30 05:17 | Read-only state audit against baseline docs | Checklist push status corrected; legacy tracked artifact issue recorded as pending OTD-018; no code cleanup performed |
 | 2026-05-29 22:42 | Revert unapproved LSTM API wiring (OTD-017) | Commit `cb6c0c9b` reverted by `b5e2d5f1`; `api/routers/predict.py` restored, `api/tests/test_predict_tracker_contract.py` removed; backup branch `backup/unapproved-lstm-wiring-cb6c0c9b` created; fallback remains active; revert pushed to origin |
