@@ -3,7 +3,7 @@
 ## How To Use This Log
 
 This log records decisions that interpret, extend, or revise the authoritative
-baseline in `docs/Product Baseline.md`.
+baseline in `docs/product_baseline.md`.
 
 Do not record routine bug fixes or refactors here. Add an entry when a change:
 
@@ -61,7 +61,7 @@ open issue remains open and must not be presented as a settled product fact.
 - Baseline impact: No baseline revision. This clarifies interpretation of schedule artifacts without changing any product requirement, demo value, agent scope, or acceptance target.
 - Evidence: Project-owner instruction on 2026-05-29; OTDT delivery progress already exceeds original timeline assumptions.
 - Approved by: Project owner
-- Affected files/components: `docs/Product Baseline.md` (new "Timeline Interpretation" section), `docs/Decision Log.md` (this entry), `docs/Implementation Checklist.md` (work log entry).
+- Affected files/components: `docs/product_baseline.md` (new "Timeline Interpretation" section), `docs/Decision Log.md` (this entry), `docs/Implementation Checklist.md` (work log entry).
 
 ### OTD-014: Unity What-If API Contract Fixed
 

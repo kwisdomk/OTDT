@@ -17,10 +17,10 @@ These three root files are the mandatory controlling authority and active source
 
 These files enforce the baseline and track implementation progress:
 - `AGENTS.md`: Agent and contributor instructions.
-- `docs/Product Baseline.md`: Defines the authoritative product intent.
+- `docs/product_baseline.md`: Defines the authoritative product intent.
 - `docs/Decision Log.md`: Records approved decisions, extensions, or revisions to the baseline.
 - `docs/Implementation Checklist.md`: Tracks implementation progress against the baseline.
-- `docs/Documentation Index.md`: Classifies active, operational, project-management, and historical documentation.
+- `docs/documentation_index.md`: Classifies active, operational, project-management, and historical documentation.
 
 ## Project Management / Status Reports
 
@@ -30,8 +30,8 @@ These files enforce the baseline and track implementation progress:
 ## Operational Runbooks
 
 These files explain how to run the current system locally. They are operational guidance, not product authority:
-- `docs/runbooks/Short Unity Demo Runbook.md`: Fast local Unity visual demo path.
-- `docs/runbooks/Long Engineering Smoke Test Runbook.md`: Broader current-state smoke test path.
+- `docs/runbooks/short_unity_demo_runbook.md`: Fast local Unity visual demo path.
+- `docs/runbooks/long_engineering_smoke_test_runbook.md`: Broader current-state smoke test path.
 
 ## Historical / Supporting Material
 

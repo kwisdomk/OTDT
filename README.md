@@ -5,7 +5,7 @@
 > ⚠️ **SYNTHETIC DATA**: All sensor readings and AI predictions are generated from simulation models. Not real plant data.
 >
 > **PRODUCT BASELINE**: Development must conform to the original March 2026
-> OTDT source artifacts. Read [docs/Product Baseline.md](docs/Product%20Baseline.md)
+> OTDT source artifacts. Read [docs/product_baseline.md](docs/product_baseline.md)
 > and [docs/Decision Log.md](docs/Decision%20Log.md) before changing
 > product scope, architecture claims, demo figures or status.
 

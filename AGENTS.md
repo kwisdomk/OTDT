@@ -3,7 +3,7 @@
 ## Required Read
 
 Before planning, writing, reviewing, or changing OTDT product behaviour or
-documentation, read `docs/Product Baseline.md`, `docs/Decision Log.md` and
+documentation, read `docs/product_baseline.md`, `docs/Decision Log.md` and
 `docs/Implementation Checklist.md`.
 
 ## Source Of Truth
