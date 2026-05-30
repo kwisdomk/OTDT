@@ -64,6 +64,7 @@ NaN/
 *.pkl
 *.keras
 *.joblib
+*.ipynb
 datasets/*.xlsx
 !datasets/GDC_Assets.xlsx
 

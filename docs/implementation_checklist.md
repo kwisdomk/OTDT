@@ -27,7 +27,7 @@ original OTDT plan.
 | Scheduler | Partial | 2026-05-29 | Demo risk profile aligned: 3 critical, 90-day window, top-five work orders; data limitation documented |
 | IBM integrations and cloud training | Paused | 2026-05-26 | Resume only when project owner says so |
 | GitHub push of current recovery commit | Done | 2026-05-30 | `feat/event-hardening` is synced with origin at `bfc35b59`; `main` merge remains pending |
-| Legacy tracked model/notebook artifacts | Pending | 2026-05-30 | Four older `.h5`/`.pkl`/`.ipynb` files remain tracked; cleanup is a supporting implementation decision, not a baseline requirement; see OTD-018 |
+| Legacy tracked model/notebook artifacts | Done | 2026-05-30 | Four older `.h5`/`.pkl`/`.ipynb` files removed from git tracking only; local copies preserved; see OTD-018 |
 
 ## 1. Setup And Tools
 
@@ -149,6 +149,7 @@ Synthetic Sensor_Readings -> Watson IoT / Kafka -> Maximo Monitor
 
 | Date / time (EAT) | Work | Result |
 | --- | --- | --- |
+| 2026-05-30 05:55 | OTD-018 legacy artifact tracking cleanup | Four older model/notebook artifacts removed from git tracking only; local copies preserved; `.gitignore` extended for notebooks; no code or baseline change |
 | 2026-05-30 05:17 | Read-only state audit against baseline docs | Checklist push status corrected; legacy tracked artifact issue recorded as pending OTD-018; no code cleanup performed |
 | 2026-05-29 22:42 | Revert unapproved LSTM API wiring (OTD-017) | Commit `cb6c0c9b` reverted by `b5e2d5f1`; `api/routers/predict.py` restored, `api/tests/test_predict_tracker_contract.py` removed; backup branch `backup/unapproved-lstm-wiring-cb6c0c9b` created; fallback remains active; revert pushed to origin |
 | 2026-05-29 21:15 | Prepare and commit safe LSTM readiness documentation | Safe metadata, .gitignore, and model readiness documented and committed under OTD-016 |

@@ -29,9 +29,19 @@ open issue remains open and must not be presented as a settled product fact.
 | OTD-010 | Scheduler currently marks all 50 assets critical, rather than identifying three high-risk assets. | Local execution of `scheduler/test_scheduler.py`. | Partial: demo risk profile aligned (commit `e5b0e0ac`, 2026-05-29). 3 critical, 90-day window, top-five work orders. Dataset limitation documented. Full production validation pending. |
 | OTD-011 | Failure mode taxonomy conflict: docs imply limited Weibull fits, root workbook contains 14 failure modes. | Root workbook vs documentation. | Open: owner confirmation required. |
 | OTD-012 | WP-07 cost policy conflict: tracker/runtime/demo values differ, though demo narrative requires USD 180,000 and USD 122,400. | Tracker, runtime code, and demo narrative comparison. | Open: owner confirmation required on consistent cost policy. |
-| OTD-018 | Legacy model binary and notebook files remain tracked in git despite current ignore policy. | `git ls-files --cached` on 2026-05-30 shows four older `.h5`/`.pkl`/`.ipynb` files still tracked. The three governing docs do not define git artifact-tracking policy. | Open: supporting implementation cleanup requires owner approval before any `git rm --cached` or `.gitignore` change. |
+| OTD-018 | Legacy model binary and notebook files remain tracked in git despite current ignore policy. | `git ls-files --cached` on 2026-05-30 showed four older `.h5`/`.pkl`/`.ipynb` files still tracked. The three governing docs do not define git artifact-tracking policy. | Resolved: owner approved supporting implementation cleanup; files removed from git tracking only, local copies preserved. |
 
 ## Approved Decisions
+
+### OTD-018: Remove Legacy Model And Notebook Artifacts From Git Tracking
+
+- Date: 2026-05-30
+- Classification: Supporting implementation
+- Decision: Remove four legacy model/notebook artifacts from git tracking using index-only cleanup while preserving local working-tree copies: `ml/cnn_anomaly/notebooks/01_cnn_training.ipynb`, `ml/lstm/models/lstm_v1.h5`, `ml/lstm/models/scaler.pkl`, and `ml/lstm/notebooks/01_lstm_training.ipynb`. Extend `.gitignore` to cover notebooks generally via `*.ipynb`.
+- Baseline impact: No baseline revision. The three governing docs do not define git artifact-tracking policy; this is repository hygiene to prevent large or credential-prone local artifacts from continuing to be tracked.
+- Evidence: `git rm --cached` removed only the four listed files from the index; `Test-Path` confirmed local copies remain; `git check-ignore -v` confirmed `.h5`, `.pkl`, and `.ipynb` rules now cover them.
+- Approved by: Project owner
+- Affected files/components: `.gitignore`, the four listed legacy model/notebook artifacts.
 
 ### OTD-017: Revert Of Unapproved LSTM API Wiring
 
