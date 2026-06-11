@@ -33,6 +33,23 @@ open issue remains open and must not be presented as a settled product fact.
 
 ## Approved Decisions
 
+### OTD-020: Calibrated LSTM Prediction API Wiring
+
+- Date: 2026-06-11
+- Classification: Supporting implementation
+- Decision: The tracker-aligned 720×8 LSTM model with Platt calibration (OTD-016, OTD-019) is wired into `POST /api/predict/failure` as an optional industrial prediction path. Owner decisions applied:
+  - **Activation:** Requires a valid 720×8 `sensor_sequence` field and/or explicit `force_source="tracker_lstm"`. Without `sensor_sequence`, the tracker path is never entered and existing fallback behaviour is unchanged.
+  - **Priority chain:** Watson ML → Tracker LSTM → Local .h5 → Synthetic. Tracker slot only activates when `sensor_sequence` is present.
+  - **Isolation:** No changes to the Unity What-If demo route (`/api/monte-carlo/whatif`), Weibull engine (`/whatif/simulate`), Monte Carlo engine, or scheduler. LSTM is not wired into Monte Carlo in this scope.
+  - **No demo force_source flag:** The existing calibrated demo route is already protected; adding a demo flag was rejected to reduce misuse risk.
+  - **Failure behaviour:** Explicit `force_source="tracker_lstm"` fails loudly (HTTP 422 for missing/invalid sequence, HTTP 503 for missing artifacts). Implicit attempts (no `force_source`) fall through silently to synthetic.
+  - **Output:** `failure_probability` is the Platt-calibrated value. Response includes `raw_score`, `calibrated_score`, `calibration_applied`, `is_synthetic`, `model_source="local_tracker_720x8_platt"`.
+  - **Artifact loading:** Local filesystem loading from `ml/lstm/models/tracker_720x8/` (.keras model, fitted .pkl scaler, .json Platt coefficients) at API startup. Each artifact loads independently; missing artifacts do not crash the API.
+- Baseline impact: No baseline revision. Implements the baseline-required LSTM failure predictor without changing any demo value, agent scope, acceptance target, or Unity contract.
+- Evidence: Combined pytest run on 2026-06-11 (EAT 16:53): 31/31 passed across four suites — `test_whatif_contract.py` (6), `test_predict_tracker_contract.py` (10), `test_demo_guardrails.py` (6), `test_platt_transform.py` (9). Protected demo values verified: WP-07 0-day=34%/$61,200, 45-day=68%/$122,400, 112-day≈83.9%/$150,984. GET WP-07 returns 0.34 synthetic. Weibull engine returns ~0.56 at 45 days (not forced to 0.68). `git status --short` confirms only `api/routers/predict.py` (modified), `api/tests/test_predict_tracker_contract.py` (new), `api/tests/test_demo_guardrails.py` (new) are planned changes.
+- Approved by: Project owner (decisions recorded in conversation a991559c on 2026-06-09)
+- Affected files/components: `api/routers/predict.py` (modified), `api/tests/test_predict_tracker_contract.py` (new), `api/tests/test_demo_guardrails.py` (new).
+
 ### OTD-019: Platt Calibration Artifact Policy
 
 - Date: 2026-05-30
