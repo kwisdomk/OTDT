@@ -22,11 +22,11 @@ original OTDT plan.
 | Unity stream sensor field repair | Done | 2026-05-26 | Baseline sensor keys restored in fallback stream |
 | React support UI | Partial | 2026-05-26 | Tests/build pass; supporting UI only, not original Three.js viewer |
 | Unity experience | Partial | 2026-05-29 | Short demo path verified manually; full production readiness not claimed |
-| LSTM model | Partial | 2026-05-29 | Tracker-aligned 720x8 model trained and locally evaluated (AUC 0.9857); unapproved API wiring reverted (OTD-017); fallback remains active; safe API wiring pending |
+| LSTM model | Partial | 2026-06-11 | Calibrated tracker 720×8 LSTM prediction API wiring completed under OTD-020 (commit 04dee662, 31/31 tests passed); SavedModel/ONNX export, Watson/cloud deployment, and Monte Carlo integration still pending |
 | Monte Carlo engine | Partial | 2026-05-29 | Code exists; calibrated demo route accepts Unity `deferral_days` payload; engine-backed What-If still differs |
 | Scheduler | Partial | 2026-05-29 | Demo risk profile aligned: 3 critical, 90-day window, top-five work orders; data limitation documented |
 | IBM integrations and cloud training | Paused | 2026-05-26 | Resume only when project owner says so |
-| GitHub push of current recovery commit | Done | 2026-05-30 | `feat/event-hardening` is synced with origin at `bfc35b59`; `main` merge remains pending |
+| GitHub push of current checkpoint | Done | 2026-06-11 | `feat/event-hardening` synced with origin at `04dee662`; `main` merge remains pending |
 | Legacy tracked model/notebook artifacts | Done | 2026-05-30 | Four older `.h5`/`.pkl`/`.ipynb` files removed from git tracking only; local copies preserved; see OTD-018 |
 
 ## 1. Setup And Tools
@@ -80,9 +80,9 @@ Synthetic Sensor_Readings -> Watson IoT / Kafka -> Maximo Monitor
 | Existing March model files located | Partial | 2026-05-26 | `.h5`, scaler and feature config present |
 | Preserve report that model was trained for March presentation | Done | 2026-05-26 | Owner-reported history; not new model validation |
 | Decide approved LSTM configuration | Done | 2026-05-29 | Tracker-aligned 720x8 model accepted as current candidate artifact |
-| Validate model using original data and approved specification | Partial | 2026-05-29 | Tracker-aligned model trained and fitted scaler recreated; unapproved API wiring reverted (OTD-017); fallback remains active; safe wiring pending approval |
+| Validate model using original data and approved specification | Partial | 2026-06-11 | Tracker-aligned 720×8 model trained, scaler recreated, Platt-calibrated prediction API wired (OTD-020, commit 04dee662, 31/31 tests passed); Monte Carlo integration still pending |
 | Confirm AUC-ROC > 0.82 | Done | 2026-05-29 | Test AUC-ROC is 0.9857 (with overlapping-window caveat) |
-| Confirm calibration curve/output | Partial | 2026-05-30 | Platt calibration artifact generated (OTD-019); Brier improved 0.0286→0.0179; AUC-ROC 0.9745; API wiring and Monte Carlo integration pending |
+| Confirm calibration curve/output | Partial | 2026-06-11 | Platt calibration artifact generated (OTD-019) and wired into prediction API (OTD-020); Brier improved 0.0286→0.0179; AUC-ROC 0.9745; Monte Carlo integration still pending |
 | Confirm SavedModel and ONNX export | Pending |  | ONNX/SavedModel still pending |
 | New Watson Studio retraining | Paused | 2026-05-26 | Do not run pending IBM reactivation |
 
@@ -105,7 +105,7 @@ Synthetic Sensor_Readings -> Watson IoT / Kafka -> Maximo Monitor
 | --- | --- | --- | --- |
 | Unity What-If API contract accepts `deferral_days` | Done | 2026-05-29 | OTD-014: `/api/monte-carlo/whatif` accepts both `deferral_days` and `maintenance_date`; 18/18 function checks and 22/22 HTTP checks passed |
 | What-If HTTP verification passed | Done | 2026-05-29 | Manual ASGI-transport verification (22/22 checks); temporary scripts removed after pytest suite added |
-| What-If automated pytest suite | Pending | 2026-05-29 | `api/tests/test_whatif_contract.py` (6 tests); requires `pip install -r api/requirements-dev.txt` in API venv |
+| What-If automated pytest suite | Done | 2026-06-11 | `api/tests/test_whatif_contract.py` (6 tests) passed as part of 31/31 combined verification on 2026-06-11 |
 | Unity What-If script exists for WP-07 | Partial | 2026-05-26 | `WhatIfSlider.cs` present; sends `{ asset_id, deferral_days }` matching API contract |
 | Verify slider renders from 0 to 180 days in Unity | Partial | 2026-05-29 | Slider tested at 0, 45, and 112 days; full 0–180 sweep not performed |
 | Verify UI changes 34% to 68% at 45 days | Done | 2026-05-29 | Unity slider at 0 days: 34.0% / $61,200; at 45 days: 68.0% / $122,400; at 112 days: 83.9% / $150,984 |
@@ -143,12 +143,13 @@ Synthetic Sensor_Readings -> Watson IoT / Kafka -> Maximo Monitor
 | Scenario 2 verified in running Unity display | Done | 2026-05-29 | Unity slider at 0 days: 34.0%; at 45 days: 68.0% / $122,400; short demo path |
 | Scenario 3 scheduler story verified | Partial | 2026-05-29 | Demo risk profile aligned; full production scheduler not validated |
 | Annual ROI statement retained: USD 360,000 vs USD 48,000 = 650% | Partial | 2026-05-26 | Baseline preserved; runnable display evidence pending |
-| Push recovery commit to GitHub | Done | 2026-05-30 | `feat/event-hardening` is synced with origin at `bfc35b59`; `main` merge remains pending |
+| Push checkpoint to GitHub | Done | 2026-06-11 | `feat/event-hardening` synced with origin at `04dee662`; `main` merge remains pending |
 
 ## Latest Work Log
 
 | Date / time (EAT) | Work | Result |
 | --- | --- | --- |
+| 2026-06-11 16:53 | Calibrated tracker LSTM prediction API wiring (OTD-020) | Commit `04dee662` pushed to `origin/feat/event-hardening`. 31/31 tests passed across `test_whatif_contract.py`, `test_predict_tracker_contract.py`, `test_demo_guardrails.py`, and `test_platt_transform.py`. Protected WP-07 demo values and Unity `deferral_days` contract unchanged. Monte Carlo LSTM integration remains pending. |
 | 2026-05-30 10:49 | Platt calibration artifact generation (OTD-019) | Calibration JSON generated; Brier 0.0286→0.0179 (improved); AUC-ROC 0.9745; 9/9 pure-function tests passed; API/Monte Carlo wiring not touched |
 | 2026-05-30 05:55 | OTD-018 legacy artifact tracking cleanup | Four older model/notebook artifacts removed from git tracking only; local copies preserved; `.gitignore` extended for notebooks; no code or baseline change |
 | 2026-05-30 05:17 | Read-only state audit against baseline docs | Checklist push status corrected; legacy tracked artifact issue recorded as pending OTD-018; no code cleanup performed |
